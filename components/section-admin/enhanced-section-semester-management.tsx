@@ -349,7 +349,7 @@ export function EnhancedSectionSemesterManagement() {
         await loadSemesters()
 
         // Switch to list view
-        setActiveTab('list')
+        setViewMode('list')
 
         // Show success message
         toast.success('Semester created successfully!')
@@ -643,924 +643,894 @@ export function EnhancedSectionSemesterManagement() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="relative overflow-hidden rounded-lg bg-gradient-to-r from-blue-600 via-purple-600 to-emerald-600 p-6 text-white">
-        <div className="relative z-10">
+      <div className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
-            <div className="space-y-2">
-              <h1 className="text-3xl font-bold flex items-center gap-2">
-                <GraduationCap className="h-8 w-8" />
-                Enhanced Semester Management
+            <div className="space-y-1">
+              <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+                <GraduationCap className="h-6 w-6" />
+                Semester Management
               </h1>
-              <p className="text-blue-100">
-                Create, edit, and manage semester structures with comprehensive tools for section administrators
+              <p className="text-sm text-muted-foreground">
+                Manage semester structures and academic content
               </p>
             </div>
-            <div className="flex items-center gap-4">
-              <Badge variant="secondary" className="bg-white/10 text-white border-white/20">
-                {filteredSemesters.length} of {semesters.length} semesters
+            <div className="flex items-center gap-3">
+              <Badge variant="secondary" className="text-xs">
+                {filteredSemesters.length} of {semesters.length}
               </Badge>
-              <div className="flex items-center gap-2 text-sm">
-                <Users className="h-4 w-4" />
-                <span>{semesters.reduce((acc, s) => acc + (s.students_count || 0), 0)} students</span>
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Users className="h-3 w-3" />
+                <span>{semesters.reduce((acc, s) => acc + (s.students_count || 0), 0)}</span>
               </div>
             </div>
           </div>
         </div>
-        <div className="absolute inset-0 bg-black/10" />
       </div>
 
       {/* Main Content */}
-      <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as ViewMode)}>
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="list" className="flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            Semester List
-          </TabsTrigger>
-          <TabsTrigger value="create" className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Create New
-          </TabsTrigger>
-          <TabsTrigger value="edit" className="flex items-center gap-2" disabled={!editingSemester}>
-            <Edit3 className="h-4 w-4" />
-            Edit Semester
-          </TabsTrigger>
-        </TabsList>
+      <div className="container mx-auto px-4">
+        <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as ViewMode)}>
+          <TabsList className="grid w-full grid-cols-3 bg-muted/50">
+            <TabsTrigger value="list" className="flex items-center gap-2 data-[state=active]:bg-background">
+              <Calendar className="h-4 w-4" />
+              List
+            </TabsTrigger>
+            <TabsTrigger value="create" className="flex items-center gap-2 data-[state=active]:bg-background">
+              <Plus className="h-4 w-4" />
+              Create
+            </TabsTrigger>
+            <TabsTrigger value="edit" className="flex items-center gap-2 data-[state=active]:bg-background" disabled={!editingSemester}>
+              <Edit3 className="h-4 w-4" />
+              Edit
+            </TabsTrigger>
+          </TabsList>
 
-        {/* List View */}
-        <TabsContent value="list" className="space-y-6">
-          {/* Filters and Search */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Filter className="h-5 w-5" />
-                Filters & Search
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-6">
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Search</Label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search semesters..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Section</Label>
-                  <Select value={filterSection} onValueChange={setFilterSection}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="All sections" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Sections</SelectItem>
-                      {uniqueSections.map(section => (
-                        <SelectItem key={section} value={section}>{section}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Year</Label>
-                  <Select value={filterYear} onValueChange={setFilterYear}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="All years" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Years</SelectItem>
-                      {uniqueYears.map(year => (
-                        <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Semester</Label>
-                  <Select value={filterSemesterType} onValueChange={setFilterSemesterType}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="All types" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Types</SelectItem>
-                      <SelectItem value="Fall">Fall</SelectItem>
-                      <SelectItem value="Spring">Spring</SelectItem>
-                      <SelectItem value="Summer">Summer</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Status</Label>
-                  <Select value={filterStatus} onValueChange={setFilterStatus}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="All status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="inactive">Inactive</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Actions</Label>
-                  <div className="flex gap-2">
-                    <Button onClick={() => setViewMode('create')} size="sm">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Create
-                    </Button>
-                    <Button variant="outline" onClick={loadSemesters} size="sm">
-                      <RefreshCw className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Semesters Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Semester Management</CardTitle>
-              <CardDescription>
-                All semesters with comprehensive management options for section administrators
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {filteredSemesters.length === 0 ? (
-                <div className="text-center py-12">
-                  <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                  <h3 className="text-lg font-medium mb-2">No semesters found</h3>
-                  <p className="text-muted-foreground mb-4">
-                    {semesters.length === 0
-                      ? "Create your first semester to get started"
-                      : "Try adjusting your search or filter criteria"
-                    }
-                  </p>
-                  <Button onClick={() => setViewMode('create')}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create First Semester
-                  </Button>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Semester Details</TableHead>
-                        <TableHead>Type & Year</TableHead>
-                        <TableHead>Content Summary</TableHead>
-                        <TableHead>Students</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Exams</TableHead>
-                        <TableHead>Last Updated</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredSemesters.map((semester) => (
-                        <TableRow key={semester.id} className="hover:bg-muted/50">
-                          <TableCell>
-                            <div>
-                              <div className="font-medium">{semester.title}</div>
-                              <div className="text-sm text-muted-foreground">
-                                {semester.description || "No description"}
-                              </div>
-                              <Badge variant="outline" className="mt-1">
-                                {semester.section}
-                              </Badge>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="space-y-1">
-                              <Badge variant="secondary">
-                                {semester.semester_type} {semester.year}
-                              </Badge>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-1 text-sm">
-                                <BookOpen className="h-3 w-3" />
-                                {semester.courses_count} Courses
-                              </div>
-                              <div className="flex items-center gap-1 text-sm">
-                                <FileText className="h-3 w-3" />
-                                {semester.topics_count} Topics
-                              </div>
-                              <div className="flex items-center gap-1 text-sm">
-                                <ClipboardList className="h-3 w-3" />
-                                {semester.study_resources_count} Resources
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <Users className="h-3 w-3" />
-                              <span className="text-sm font-medium">
-                                {semester.students_count || 0}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              {(semester.is_active ?? true) ? (
-                                <Badge variant="default" className="bg-green-100 text-green-800">
-                                  <CheckCircle2 className="h-3 w-3 mr-1" />
-                                  Active
-                                </Badge>
-                              ) : (
-                                <Badge variant="secondary" className="bg-red-100 text-red-800">
-                                  <XCircle className="h-3 w-3 mr-1" />
-                                  Inactive
-                                </Badge>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="space-y-1">
-                              {semester.has_midterm && (
-                                <Badge variant="secondary" className="text-xs">Midterm</Badge>
-                              )}
-                              {semester.has_final && (
-                                <Badge variant="secondary" className="text-xs">Final</Badge>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm">
-                              {new Date(semester.updated_at!).toLocaleDateString()}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {/* handleView(semester.id!) */}}
-                                title="View Details"
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {/* handleEdit(semester.id!) */}}
-                                title="Edit Semester"
-                              >
-                                <Edit3 className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {/* handleDuplicate(semester.id!) */}}
-                                title="Duplicate Semester"
-                              >
-                                <Copy className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Create View */}
-        <TabsContent value="create" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Plus className="h-5 w-5" />
-                  Create New Semester
-                </div>
-              </CardTitle>
-              <CardDescription>
-                Create a new semester with courses, topics, and study resources for your section
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Semester Basic Info */}
-              <div className="grid gap-6 md:grid-cols-2">
-                <div className="space-y-4">
+          {/* List View */}
+          <TabsContent value="list" className="space-y-4 mt-6">
+            {/* Filters and Search */}
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-medium flex items-center gap-2">
+                  <Filter className="h-4 w-4" />
+                  Filters
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-3 md:grid-cols-6">
                   <div className="space-y-2">
-                    <Label htmlFor="create-semester-title" className="text-sm font-medium">
-                      Semester Title *
-                    </Label>
-                    <Input
-                      id="create-semester-title"
-                      placeholder="e.g., Fall 2025"
-                      value={formData.semester.title}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        semester: { ...prev.semester, title: e.target.value }
-                      }))}
-                      className="h-11"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="create-semester-section" className="text-sm font-medium">
-                      Section *
-                    </Label>
-                    <Input
-                      id="create-semester-section"
-                      placeholder="e.g., CS-A"
-                      value={formData.semester.section}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        semester: { ...prev.semester, section: e.target.value }
-                      }))}
-                      className="h-11"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Semester Type *</Label>
-                      <Select
-                        value={formData.semester.semester_type}
-                        onValueChange={(value: 'Fall' | 'Spring' | 'Summer') =>
-                          setFormData(prev => ({
-                            ...prev,
-                            semester: { ...prev.semester, semester_type: value }
-                          }))
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Fall">Fall</SelectItem>
-                          <SelectItem value="Spring">Spring</SelectItem>
-                          <SelectItem value="Summer">Summer</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Year *</Label>
+                    <Label className="text-xs font-medium text-muted-foreground">Search</Label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
                       <Input
-                        type="number"
-                        min="2020"
-                        max="2030"
-                        value={formData.semester.year}
-                        onChange={(e) => setFormData(prev => ({
-                          ...prev,
-                          semester: { ...prev.semester, year: parseInt(e.target.value) || new Date().getFullYear() }
-                        }))}
-                        className="h-11"
+                        placeholder="Search..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-9 h-9 text-sm"
                       />
                     </div>
                   </div>
-                </div>
 
-                <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="create-semester-description" className="text-sm font-medium">
-                      Description
-                    </Label>
-                    <Textarea
-                      id="create-semester-description"
-                      placeholder="Describe this semester..."
-                      value={formData.semester.description}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        semester: { ...prev.semester, description: e.target.value }
-                      }))}
-                      rows={3}
-                    />
+                    <Label className="text-xs font-medium text-muted-foreground">Section</Label>
+                    <Select value={filterSection} onValueChange={setFilterSection}>
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue placeholder="All" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        {uniqueSections.map(section => (
+                          <SelectItem key={section} value={section}>{section}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
-
-
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="semester-active"
-                      checked={formData.semester.is_active}
-                      onCheckedChange={(checked) => setFormData(prev => ({
-                        ...prev,
-                        semester: { ...prev.semester, is_active: checked }
-                      }))}
-                    />
-                    <Label htmlFor="semester-active" className="text-sm">
-                      Active Semester
-                    </Label>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-medium text-muted-foreground">Year</Label>
+                    <Select value={filterYear} onValueChange={setFilterYear}>
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue placeholder="All" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        {uniqueYears.map(year => (
+                          <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                </div>
-              </div>
 
-              {/* Course Management Section */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium">Courses</h3>
-                  <Button
-                    onClick={addCourse}
-                    size="sm"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Course
-                  </Button>
-                </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-medium text-muted-foreground">Type</Label>
+                    <Select value={filterSemesterType} onValueChange={setFilterSemesterType}>
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue placeholder="All" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="Fall">Fall</SelectItem>
+                        <SelectItem value="Spring">Spring</SelectItem>
+                        <SelectItem value="Summer">Summer</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                {formData.courses.length === 0 ? (
-                  <Card className="border-dashed">
-                    <CardContent className="flex flex-col items-center justify-center py-12">
-                      <BookOpen className="h-12 w-12 text-muted-foreground opacity-50 mb-4" />
-                      <h3 className="text-lg font-medium mb-2">No courses added yet</h3>
-                      <p className="text-muted-foreground text-center mb-4">
-                        Add courses to this semester to organize your academic content
-                      </p>
-                      <Button onClick={addCourse}>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add First Course
+                  <div className="space-y-2">
+                    <Label className="text-xs font-medium text-muted-foreground">Status</Label>
+                    <Select value={filterStatus} onValueChange={setFilterStatus}>
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue placeholder="All" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="inactive">Inactive</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs font-medium text-muted-foreground">Actions</Label>
+                    <div className="flex gap-2">
+                      <Button onClick={() => setViewMode('create')} size="sm" className="h-9 text-xs">
+                        <Plus className="h-3 w-3 mr-1" />
+                        Create
                       </Button>
-                    </CardContent>
-                  </Card>
+                      <Button variant="outline" onClick={loadSemesters} size="sm" className="h-9 px-2">
+                        <RefreshCw className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Semesters Table */}
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-medium">Semesters</CardTitle>
+                <CardDescription className="text-xs text-muted-foreground">
+                  Manage your academic semesters
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {filteredSemesters.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Calendar className="h-8 w-8 mx-auto mb-3 text-muted-foreground/50" />
+                    <h3 className="text-sm font-medium mb-1">No semesters found</h3>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      {semesters.length === 0
+                        ? "Create your first semester to get started"
+                        : "Try adjusting your search or filter criteria"
+                      }
+                    </p>
+                    <Button onClick={() => setViewMode('create')} size="sm">
+                      <Plus className="h-3 w-3 mr-1" />
+                      Create Semester
+                    </Button>
+                  </div>
                 ) : (
-                  <div className="space-y-4">
-                    {formData.courses.map((course, courseIndex) => (
-                      <Card key={courseIndex} className="border-l-4 border-l-blue-500 shadow-sm">
-                        <CardHeader className="pb-4 bg-gradient-to-r from-blue-50 to-transparent">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                <BookOpen className="h-4 w-4 text-blue-600" />
-                              </div>
-                              <CardTitle className="text-lg text-blue-900">Course {courseIndex + 1}</CardTitle>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeCourse(courseIndex)}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          {/* Course Basic Info */}
-                          <div className="grid gap-4 md:grid-cols-2">
-                            <div className="space-y-2">
-                              <Label className="text-sm font-medium">Course Name *</Label>
-                              <Input
-                                placeholder="e.g., Data Structures"
-                                value={course.title}
-                                onChange={(e) => updateCourse(courseIndex, 'title', e.target.value)}
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label className="text-sm font-medium">Course Code *</Label>
-                              <Input
-                                placeholder="e.g., CSE-201"
-                                value={course.course_code}
-                                onChange={(e) => updateCourse(courseIndex, 'course_code', e.target.value)}
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label className="text-sm font-medium">Teacher Name *</Label>
-                              <Input
-                                placeholder="e.g., Dr. John Smith"
-                                value={course.teacher_name}
-                                onChange={(e) => updateCourse(courseIndex, 'teacher_name', e.target.value)}
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label className="text-sm font-medium">Teacher Email</Label>
-                              <Input
-                                type="email"
-                                placeholder="e.g., john.smith@diu.edu.bd"
-                                value={course.teacher_email || ''}
-                                onChange={(e) => updateCourse(courseIndex, 'teacher_email', e.target.value)}
-                              />
-                            </div>
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium">Course Description</Label>
-                            <Textarea
-                              placeholder="Brief description of the course..."
-                              value={course.description || ''}
-                              onChange={(e) => updateCourse(courseIndex, 'description', e.target.value)}
-                              rows={2}
-                            />
-                          </div>
-
-                          {/* Topics Section */}
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <Label className="text-sm font-medium">Topics</Label>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => addTopic(courseIndex)}
-                              >
-                                <Plus className="h-4 w-4 mr-2" />
-                                Add Topic
-                              </Button>
-                            </div>
-
-                            {course.topics.length === 0 ? (
-                              <div className="text-center py-4 text-muted-foreground">
-                                No topics added yet
-                              </div>
-                            ) : (
-                              <div className="space-y-3">
-                                {course.topics.map((topic, topicIndex) => (
-                                  <Card key={topicIndex} className="bg-gradient-to-r from-green-50 to-transparent border-l-2 border-l-green-400">
-                                    <CardContent className="p-4">
-                                      <div className="flex items-center justify-between mb-4">
-                                        <div className="flex items-center gap-2">
-                                          <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
-                                            <span className="text-xs font-medium text-green-700">{topicIndex + 1}</span>
-                                          </div>
-                                          <h4 className="font-medium text-green-900">Topic {topicIndex + 1}</h4>
-                                        </div>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => removeTopic(courseIndex, topicIndex)}
-                                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                        >
-                                          <X className="h-4 w-4" />
-                                        </Button>
-                                      </div>
-
-                                      <div className="space-y-2 mb-4">
-                                        <Label className="text-sm font-medium">Topic Name *</Label>
-                                        <Input
-                                          placeholder="e.g., Arrays and Linked Lists"
-                                          value={topic.title}
-                                          onChange={(e) => updateTopic(courseIndex, topicIndex, 'title', e.target.value)}
-                                          className="h-10"
-                                        />
-                                      </div>
-
-                                      {/* Videos Section */}
-                                      <div className="space-y-3">
-                                        <div className="flex items-center justify-between p-2 bg-red-50 rounded-lg">
-                                          <div className="flex items-center gap-2">
-                                            <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center">
-                                              <span className="text-xs">🎥</span>
-                                            </div>
-                                            <Label className="text-sm font-medium text-red-800">Videos</Label>
-                                          </div>
-                                          <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => addVideo(courseIndex, topicIndex)}
-                                            className="border-red-200 text-red-700 hover:bg-red-100"
-                                          >
-                                            <Plus className="h-3 w-3 mr-1" />
-                                            Add Video
-                                          </Button>
-                                        </div>
-
-                                        {topic.videos.length === 0 ? (
-                                          <div className="text-xs text-muted-foreground text-center py-2">
-                                            No videos added yet
-                                          </div>
-                                        ) : (
-                                          <div className="space-y-2">
-                                            {topic.videos.map((video, videoIndex) => (
-                                              <div key={videoIndex} className="border border-red-200 rounded-lg p-3 bg-white shadow-sm">
-                                                <div className="flex items-center justify-between mb-3">
-                                                  <div className="flex items-center gap-2">
-                                                    <span className="text-lg">🎬</span>
-                                                    <span className="text-sm font-medium text-red-800">Video {videoIndex + 1}</span>
-                                                  </div>
-                                                  <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => removeVideo(courseIndex, topicIndex, videoIndex)}
-                                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                                  >
-                                                    <X className="h-3 w-3" />
-                                                  </Button>
-                                                </div>
-                                                <div className="space-y-3">
-                                                  <div className="space-y-1">
-                                                    <Label className="text-xs text-muted-foreground">Video Title</Label>
-                                                    <Input
-                                                      placeholder="e.g., Introduction to Arrays"
-                                                      value={video.title}
-                                                      onChange={(e) => updateVideo(courseIndex, topicIndex, videoIndex, 'title', e.target.value)}
-                                                      className="h-9"
-                                                    />
-                                                  </div>
-                                                  <div className="space-y-1">
-                                                    <Label className="text-xs text-muted-foreground">YouTube URL</Label>
-                                                    <Input
-                                                      placeholder="https://youtube.com/watch?v=..."
-                                                      value={video.youtube_url}
-                                                      onChange={(e) => updateVideo(courseIndex, topicIndex, videoIndex, 'youtube_url', e.target.value)}
-                                                      className="h-9"
-                                                    />
-                                                  </div>
-                                                </div>
-                                              </div>
-                                            ))}
-                                          </div>
-                                        )}
-                                      </div>
-
-                                      {/* Files Section */}
-                                      <div className="space-y-3">
-                                        <div className="flex items-center justify-between p-2 bg-purple-50 rounded-lg">
-                                          <div className="flex items-center gap-2">
-                                            <div className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center">
-                                              <span className="text-xs">📁</span>
-                                            </div>
-                                            <Label className="text-sm font-medium text-purple-800">Files</Label>
-                                          </div>
-                                          <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => addSlide(courseIndex, topicIndex)}
-                                            className="border-purple-200 text-purple-700 hover:bg-purple-100"
-                                          >
-                                            <Plus className="h-3 w-3 mr-1" />
-                                            Add File
-                                          </Button>
-                                        </div>
-
-                                        {topic.slides.length === 0 ? (
-                                          <div className="text-xs text-muted-foreground text-center py-2">
-                                            No files added yet
-                                          </div>
-                                        ) : (
-                                          <div className="space-y-2">
-                                            {topic.slides.map((slide, slideIndex) => (
-                                              <div key={slideIndex} className="border border-purple-200 rounded-lg p-3 bg-white shadow-sm">
-                                                <div className="flex items-center justify-between mb-3">
-                                                  <div className="flex items-center gap-2">
-                                                    <span className="text-lg">📄</span>
-                                                    <span className="text-sm font-medium text-purple-800">File {slideIndex + 1}</span>
-                                                  </div>
-                                                  <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => removeSlide(courseIndex, topicIndex, slideIndex)}
-                                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                                  >
-                                                    <X className="h-3 w-3" />
-                                                  </Button>
-                                                </div>
-                                                <div className="space-y-3">
-                                                  <div className="space-y-1">
-                                                    <Label className="text-xs text-muted-foreground">File Title</Label>
-                                                    <Input
-                                                      placeholder="e.g., Chapter 1 Slides"
-                                                      value={slide.title}
-                                                      onChange={(e) => updateSlide(courseIndex, topicIndex, slideIndex, 'title', e.target.value)}
-                                                      className="h-9"
-                                                    />
-                                                  </div>
-                                                  <div className="space-y-1">
-                                                    <Label className="text-xs text-muted-foreground">Google Drive URL</Label>
-                                                    <Input
-                                                      placeholder="https://drive.google.com/file/d/..."
-                                                      value={slide.google_drive_url}
-                                                      onChange={(e) => updateSlide(courseIndex, topicIndex, slideIndex, 'google_drive_url', e.target.value)}
-                                                      className="h-9"
-                                                    />
-                                                  </div>
-                                                </div>
-                                              </div>
-                                            ))}
-                                          </div>
-                                        )}
-                                      </div>
-                                    </CardContent>
-                                  </Card>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Study Resources Section */}
-                          <div className="space-y-4 mt-6 pt-4 border-t border-gray-200">
-                            <div className="flex items-center justify-between p-3 bg-gradient-to-r from-orange-50 to-yellow-50 rounded-lg">
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-                                  <span className="text-sm">📚</span>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-border/50">
+                          <TableHead className="text-xs font-medium text-muted-foreground">Details</TableHead>
+                          <TableHead className="text-xs font-medium text-muted-foreground">Type</TableHead>
+                          <TableHead className="text-xs font-medium text-muted-foreground">Content</TableHead>
+                          <TableHead className="text-xs font-medium text-muted-foreground">Students</TableHead>
+                          <TableHead className="text-xs font-medium text-muted-foreground">Status</TableHead>
+                          <TableHead className="text-xs font-medium text-muted-foreground">Updated</TableHead>
+                          <TableHead className="text-xs font-medium text-muted-foreground text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredSemesters.map((semester) => (
+                          <TableRow key={semester.id} className="hover:bg-muted/30 border-border/50">
+                            <TableCell className="py-3">
+                              <div className="space-y-1">
+                                <div className="text-sm font-medium">{semester.title}</div>
+                                <div className="text-xs text-muted-foreground line-clamp-1">
+                                  {semester.description || "No description"}
                                 </div>
-                                <Label className="text-sm font-medium text-orange-800">Study Resources</Label>
+                                <Badge variant="outline" className="text-xs h-5">
+                                  {semester.section}
+                                </Badge>
                               </div>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => addStudyResource(courseIndex)}
-                                className="border-orange-200 text-orange-700 hover:bg-orange-100"
-                              >
-                                <Plus className="h-4 w-4 mr-2" />
-                                Add Resource
-                              </Button>
-                            </div>
-
-                            {course.study_resources.length === 0 ? (
-                              <div className="text-center py-6 text-muted-foreground bg-gray-50 rounded-lg">
-                                <span className="text-2xl mb-2 block">📖</span>
-                                <p>No study resources added yet</p>
-                                <p className="text-xs mt-1">Add notes, previous questions, or syllabus content</p>
+                            </TableCell>
+                            <TableCell className="py-3">
+                              <Badge variant="secondary" className="text-xs h-5">
+                                {semester.semester_type} {semester.year}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="py-3">
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <BookOpen className="h-3 w-3" />
+                                  {semester.courses_count}
+                                </div>
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <FileText className="h-3 w-3" />
+                                  {semester.topics_count}
+                                </div>
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <ClipboardList className="h-3 w-3" />
+                                  {semester.study_resources_count}
+                                </div>
                               </div>
-                            ) : (
-                              <div className="space-y-4">
-                                {course.study_resources.map((resource, resourceIndex) => (
-                                  <Card key={resourceIndex} className="bg-gradient-to-r from-orange-50 to-yellow-50 border-l-4 border-l-orange-400 shadow-sm">
-                                    <CardContent className="p-4">
-                                      <div className="flex items-center justify-between mb-4">
-                                        <div className="flex items-center gap-3">
-                                          <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-                                            <span className="text-sm">
-                                              {resource.type === 'note' ? '📝' : resource.type === 'previous_question' ? '❓' : '📋'}
-                                            </span>
-                                          </div>
-                                          <h4 className="font-medium text-orange-900">
-                                            {resource.type === 'note' ? 'Note' : resource.type === 'previous_question' ? 'Previous Question' : 'Syllabus'} {resourceIndex + 1}
-                                          </h4>
-                                        </div>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => removeStudyResource(courseIndex, resourceIndex)}
-                                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                        >
-                                          <X className="h-4 w-4" />
-                                        </Button>
-                                      </div>
-
-                                      <div className="grid gap-3 md:grid-cols-2 mb-3">
-                                        <div className="space-y-2">
-                                          <Label className="text-sm">Resource Title *</Label>
-                                          <Input
-                                            placeholder="e.g., Chapter 1 Notes"
-                                            value={resource.title}
-                                            onChange={(e) => updateStudyResource(courseIndex, resourceIndex, 'title', e.target.value)}
-                                          />
-                                        </div>
-                                        <div className="space-y-2">
-                                          <Label className="text-sm">Category *</Label>
-                                          <Select
-                                            value={resource.type || 'note'}
-                                            onValueChange={(value) => updateStudyResource(courseIndex, resourceIndex, 'type', value)}
-                                          >
-                                            <SelectTrigger>
-                                              <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="note">Note</SelectItem>
-                                              <SelectItem value="previous_question">Previous Question</SelectItem>
-                                              <SelectItem value="syllabus">Syllabus</SelectItem>
-                                            </SelectContent>
-                                          </Select>
-                                        </div>
-                                      </div>
-
-                                      <div className="space-y-4">
-                                        <div className="space-y-2">
-                                          <Label className="text-sm font-medium">Content Type</Label>
-                                          <div className="flex gap-2">
-                                            <Button
-                                              type="button"
-                                              variant={(resource.content_url && resource.content_url.trim() !== '') ? "default" : "outline"}
-                                              size="sm"
-                                              onClick={() => {
-                                                updateStudyResource(courseIndex, resourceIndex, 'content_url', 'file')
-                                                updateStudyResource(courseIndex, resourceIndex, 'description', '')
-                                              }}
-                                              className="flex-1"
-                                            >
-                                              📁 File (Google Drive)
-                                            </Button>
-                                            <Button
-                                              type="button"
-                                              variant={(!resource.content_url || resource.content_url.trim() === '') && resource.description ? "default" : "outline"}
-                                              size="sm"
-                                              onClick={() => {
-                                                updateStudyResource(courseIndex, resourceIndex, 'content_url', '')
-                                                updateStudyResource(courseIndex, resourceIndex, 'description', 'text')
-                                              }}
-                                              className="flex-1"
-                                            >
-                                              📝 Text Content
-                                            </Button>
-                                          </div>
-                                        </div>
-
-                                        {(resource.content_url && resource.content_url.trim() !== '' && resource.content_url !== 'text') ? (
-                                          <div className="space-y-2">
-                                            <Label className="text-sm font-medium">Google Drive File URL</Label>
-                                            <Input
-                                              placeholder="https://drive.google.com/file/d/..."
-                                              value={resource.content_url === 'file' ? '' : resource.content_url}
-                                              onChange={(e) => updateStudyResource(courseIndex, resourceIndex, 'content_url', e.target.value)}
-                                              className="h-10"
-                                            />
-                                            <p className="text-xs text-muted-foreground">
-                                              Paste the Google Drive sharing link for your file
-                                            </p>
-                                          </div>
-                                        ) : (
-                                          <div className="space-y-2">
-                                            <Label className="text-sm font-medium">Text Content</Label>
-                                            <Textarea
-                                              placeholder={
-                                                resource.type === 'syllabus'
-                                                  ? "Enter syllabus content, course outline, learning objectives..."
-                                                  : resource.type === 'note'
-                                                  ? "Enter notes, explanations, key points..."
-                                                  : "Enter previous questions, sample problems, practice exercises..."
-                                              }
-                                              value={resource.description === 'text' ? '' : resource.description || ''}
-                                              onChange={(e) => updateStudyResource(courseIndex, resourceIndex, 'description', e.target.value)}
-                                              rows={6}
-                                              className="resize-none"
-                                            />
-                                            <p className="text-xs text-muted-foreground">
-                                              {resource.type === 'syllabus' && "Add course syllabus, topics, and learning outcomes"}
-                                              {resource.type === 'note' && "Add detailed notes and explanations"}
-                                              {resource.type === 'previous_question' && "Add previous exam questions and solutions"}
-                                            </p>
-                                          </div>
-                                        )}
-                                      </div>
-                                    </CardContent>
-                                  </Card>
-                                ))}
+                            </TableCell>
+                            <TableCell className="py-3">
+                              <div className="flex items-center gap-1 text-xs">
+                                <Users className="h-3 w-3 text-muted-foreground" />
+                                <span className="font-medium">
+                                  {semester.students_count || 0}
+                                </span>
                               </div>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                            </TableCell>
+                            <TableCell className="py-3">
+                              {(semester.is_active ?? true) ? (
+                                <Badge variant="default" className="text-xs h-5 bg-green-100 text-green-700 hover:bg-green-100">
+                                  Active
+                                </Badge>
+                              ) : (
+                                <Badge variant="secondary" className="text-xs h-5 bg-red-100 text-red-700">
+                                  Inactive
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="py-3">
+                              <div className="text-xs text-muted-foreground">
+                                {new Date(semester.updated_at!).toLocaleDateString()}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right py-3">
+                              <div className="flex items-center justify-end gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {/* handleView(semester.id!) */}}
+                                  className="h-7 w-7 p-0"
+                                >
+                                  <Eye className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {/* handleEdit(semester.id!) */}}
+                                  className="h-7 w-7 p-0"
+                                >
+                                  <Edit3 className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {/* handleDuplicate(semester.id!) */}}
+                                  className="h-7 w-7 p-0"
+                                >
+                                  <Copy className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
                   </div>
                 )}
-              </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-              {/* Action Buttons */}
-              <div className="flex items-center justify-between pt-6 border-t">
-                <Button
-                  variant="outline"
-                  onClick={() => setViewMode('list')}
-                >
-                  <X className="h-4 w-4 mr-2" />
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleSubmit}
-                  disabled={isCreating}
-                >
-                  {isCreating ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          {/* Create View */}
+          <TabsContent value="create" className="space-y-4 mt-6">
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-medium flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  Create Semester
+                </CardTitle>
+                <CardDescription className="text-xs text-muted-foreground">
+                  Create a new semester with courses and content
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Semester Basic Info */}
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="create-semester-title" className="text-xs font-medium text-muted-foreground">
+                        Semester Title *
+                      </Label>
+                      <Input
+                        id="create-semester-title"
+                        placeholder="e.g., Fall 2025"
+                        value={formData.semester.title}
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
+                          semester: { ...prev.semester, title: e.target.value }
+                        }))}
+                        className="h-9 text-sm"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="create-semester-section" className="text-xs font-medium text-muted-foreground">
+                        Section *
+                      </Label>
+                      <Input
+                        id="create-semester-section"
+                        placeholder="e.g., CS-A"
+                        value={formData.semester.section}
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
+                          semester: { ...prev.semester, section: e.target.value }
+                        }))}
+                        className="h-9 text-sm"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium text-muted-foreground">Type *</Label>
+                        <Select
+                          value={formData.semester.semester_type}
+                          onValueChange={(value: 'Fall' | 'Spring' | 'Summer') =>
+                            setFormData(prev => ({
+                              ...prev,
+                              semester: { ...prev.semester, semester_type: value }
+                            }))
+                          }
+                        >
+                          <SelectTrigger className="h-9 text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Fall">Fall</SelectItem>
+                            <SelectItem value="Spring">Spring</SelectItem>
+                            <SelectItem value="Summer">Summer</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium text-muted-foreground">Year *</Label>
+                        <Input
+                          type="number"
+                          min="2020"
+                          max="2030"
+                          value={formData.semester.year}
+                          onChange={(e) => setFormData(prev => ({
+                            ...prev,
+                            semester: { ...prev.semester, year: parseInt(e.target.value) || new Date().getFullYear() }
+                          }))}
+                          className="h-9 text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="create-semester-description" className="text-xs font-medium text-muted-foreground">
+                        Description
+                      </Label>
+                      <Textarea
+                        id="create-semester-description"
+                        placeholder="Describe this semester..."
+                        value={formData.semester.description}
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
+                          semester: { ...prev.semester, description: e.target.value }
+                        }))}
+                        rows={2}
+                        className="text-sm resize-none"
+                      />
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="semester-active"
+                        checked={formData.semester.is_active}
+                        onCheckedChange={(checked) => setFormData(prev => ({
+                          ...prev,
+                          semester: { ...prev.semester, is_active: checked }
+                        }))}
+                      />
+                      <Label htmlFor="semester-active" className="text-xs">
+                        Active Semester
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Course Management Section */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-medium">Courses</h3>
+                    <Button
+                      onClick={addCourse}
+                      size="sm"
+                      variant="outline"
+                      className="h-8 text-xs"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Add Course
+                    </Button>
+                  </div>
+
+                  {formData.courses.length === 0 ? (
+                    <Card className="border-dashed border-muted-foreground/25">
+                      <CardContent className="flex flex-col items-center justify-center py-8">
+                        <BookOpen className="h-8 w-8 text-muted-foreground/50 mb-2" />
+                        <h3 className="text-sm font-medium mb-1">No courses added</h3>
+                        <p className="text-xs text-muted-foreground text-center mb-3">
+                          Add courses to organize your content
+                        </p>
+                        <Button onClick={addCourse} size="sm" variant="outline" className="h-8 text-xs">
+                          <Plus className="h-3 w-3 mr-1" />
+                          Add Course
+                        </Button>
+                      </CardContent>
+                    </Card>
                   ) : (
-                    <Save className="h-4 w-4 mr-2" />
-                  )}
-                  {editingSemester ? 'Update Semester' : 'Create Semester'}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                    <div className="space-y-3">
+                      {formData.courses.map((course, courseIndex) => (
+                        <Card key={courseIndex} className="border border-border/50 shadow-sm">
+                          <CardHeader className="pb-3 bg-muted/20">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center">
+                                  <BookOpen className="h-3 w-3 text-primary" />
+                                </div>
+                                <CardTitle className="text-sm font-medium">Course {courseIndex + 1}</CardTitle>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeCourse(courseIndex)}
+                                className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="space-y-3">
+                            {/* Course Basic Info */}
+                            <div className="grid gap-3 md:grid-cols-2">
+                              <div className="space-y-2">
+                                <Label className="text-xs font-medium text-muted-foreground">Course Name *</Label>
+                                <Input
+                                  placeholder="e.g., Data Structures"
+                                  value={course.title}
+                                  onChange={(e) => updateCourse(courseIndex, 'title', e.target.value)}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-xs font-medium text-muted-foreground">Course Code *</Label>
+                                <Input
+                                  placeholder="e.g., CSE-201"
+                                  value={course.course_code}
+                                  onChange={(e) => updateCourse(courseIndex, 'course_code', e.target.value)}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-xs font-medium text-muted-foreground">Teacher Name *</Label>
+                                <Input
+                                  placeholder="e.g., Dr. John Smith"
+                                  value={course.teacher_name}
+                                  onChange={(e) => updateCourse(courseIndex, 'teacher_name', e.target.value)}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-xs font-medium text-muted-foreground">Teacher Email</Label>
+                                <Input
+                                  type="email"
+                                  placeholder="e.g., john.smith@diu.edu.bd"
+                                  value={course.teacher_email || ''}
+                                  onChange={(e) => updateCourse(courseIndex, 'teacher_email', e.target.value)}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                            </div>
 
-        {/* Edit View */}
-        <TabsContent value="edit" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Edit3 className="h-5 w-5" />
-                Edit Semester
-              </CardTitle>
-              <CardDescription>
-                Modify semester details and manage courses
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Edit functionality will be implemented here
-              </p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                            <div className="space-y-2">
+                              <Label className="text-xs font-medium text-muted-foreground">Course Description</Label>
+                              <Textarea
+                                placeholder="Brief description..."
+                                value={course.description || ''}
+                                onChange={(e) => updateCourse(courseIndex, 'description', e.target.value)}
+                                rows={2}
+                                className="text-sm resize-none"
+                              />
+                            </div>
+
+                            {/* Topics Section */}
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between">
+                                <Label className="text-xs font-medium text-muted-foreground">Topics</Label>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => addTopic(courseIndex)}
+                                  className="h-7 text-xs"
+                                >
+                                  <Plus className="h-3 w-3 mr-1" />
+                                  Add Topic
+                                </Button>
+                              </div>
+
+                              {course.topics.length === 0 ? (
+                                <div className="text-center py-3 text-muted-foreground bg-muted/20 rounded border-dashed border border-muted-foreground/25">
+                                  <p className="text-xs">No topics added</p>
+                                </div>
+                              ) : (
+                                <div className="space-y-2">
+                                  {course.topics.map((topic, topicIndex) => (
+                                    <Card key={topicIndex} className="border border-border/50 shadow-sm">
+                                      <CardContent className="p-3">
+                                        <div className="flex items-center justify-between mb-3">
+                                          <div className="flex items-center gap-2">
+                                            <div className="w-5 h-5 bg-muted rounded-full flex items-center justify-center">
+                                              <span className="text-xs font-medium">{topicIndex + 1}</span>
+                                            </div>
+                                            <h4 className="text-xs font-medium">Topic {topicIndex + 1}</h4>
+                                          </div>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => removeTopic(courseIndex, topicIndex)}
+                                            className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive"
+                                          >
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+
+                                        <div className="space-y-2 mb-3">
+                                          <Label className="text-xs text-muted-foreground">Topic Name *</Label>
+                                          <Input
+                                            placeholder="e.g., Arrays and Linked Lists"
+                                            value={topic.title}
+                                            onChange={(e) => updateTopic(courseIndex, topicIndex, 'title', e.target.value)}
+                                            className="h-8 text-sm"
+                                          />
+                                        </div>
+
+                                        {/* Videos Section */}
+                                        <div className="space-y-2">
+                                          <div className="flex items-center justify-between">
+                                            <Label className="text-xs text-muted-foreground">Videos</Label>
+                                            <Button
+                                              type="button"
+                                              variant="outline"
+                                              size="sm"
+                                              onClick={() => addVideo(courseIndex, topicIndex)}
+                                              className="h-6 text-xs"
+                                            >
+                                              <Plus className="h-3 w-3 mr-1" />
+                                              Add
+                                            </Button>
+                                          </div>
+
+                                          {topic.videos.length === 0 ? (
+                                            <div className="text-xs text-muted-foreground text-center py-2 bg-muted/20 rounded border-dashed border border-muted-foreground/25">
+                                              No videos added
+                                            </div>
+                                          ) : (
+                                            <div className="space-y-2">
+                                              {topic.videos.map((video, videoIndex) => (
+                                                <div key={videoIndex} className="border border-border/50 rounded p-2 bg-background shadow-sm">
+                                                  <div className="flex items-center justify-between mb-2">
+                                                    <div className="flex items-center gap-1">
+                                                      <span className="text-xs">🎬</span>
+                                                      <span className="text-xs font-medium">Video {videoIndex + 1}</span>
+                                                    </div>
+                                                    <Button
+                                                      variant="ghost"
+                                                      size="sm"
+                                                      onClick={() => removeVideo(courseIndex, topicIndex, videoIndex)}
+                                                      className="h-4 w-4 p-0 text-muted-foreground hover:text-destructive"
+                                                    >
+                                                      <X className="h-3 w-3" />
+                                                    </Button>
+                                                  </div>
+                                                  <div className="space-y-2">
+                                                    <div className="space-y-1">
+                                                      <Label className="text-xs text-muted-foreground">Title</Label>
+                                                      <Input
+                                                        placeholder="Video title"
+                                                        value={video.title}
+                                                        onChange={(e) => updateVideo(courseIndex, topicIndex, videoIndex, 'title', e.target.value)}
+                                                        className="h-7 text-xs"
+                                                      />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                      <Label className="text-xs text-muted-foreground">YouTube URL</Label>
+                                                      <Input
+                                                        placeholder="https://youtube.com/watch?v=..."
+                                                        value={video.youtube_url}
+                                                        onChange={(e) => updateVideo(courseIndex, topicIndex, videoIndex, 'youtube_url', e.target.value)}
+                                                        className="h-7 text-xs"
+                                                      />
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          )}
+                                        </div>
+
+                                        {/* Files Section */}
+                                        <div className="space-y-2">
+                                          <div className="flex items-center justify-between">
+                                            <Label className="text-xs text-muted-foreground">Files</Label>
+                                            <Button
+                                              type="button"
+                                              variant="outline"
+                                              size="sm"
+                                              onClick={() => addSlide(courseIndex, topicIndex)}
+                                              className="h-6 text-xs"
+                                            >
+                                              <Plus className="h-3 w-3 mr-1" />
+                                              Add
+                                            </Button>
+                                          </div>
+
+                                          {topic.slides.length === 0 ? (
+                                            <div className="text-xs text-muted-foreground text-center py-2 bg-muted/20 rounded border-dashed border border-muted-foreground/25">
+                                              No files added
+                                            </div>
+                                          ) : (
+                                            <div className="space-y-2">
+                                              {topic.slides.map((slide, slideIndex) => (
+                                                <div key={slideIndex} className="border border-border/50 rounded p-2 bg-background shadow-sm">
+                                                  <div className="flex items-center justify-between mb-2">
+                                                    <div className="flex items-center gap-1">
+                                                      <span className="text-xs">📄</span>
+                                                      <span className="text-xs font-medium">File {slideIndex + 1}</span>
+                                                    </div>
+                                                    <Button
+                                                      variant="ghost"
+                                                      size="sm"
+                                                      onClick={() => removeSlide(courseIndex, topicIndex, slideIndex)}
+                                                      className="h-4 w-4 p-0 text-muted-foreground hover:text-destructive"
+                                                    >
+                                                      <X className="h-3 w-3" />
+                                                    </Button>
+                                                  </div>
+                                                  <div className="space-y-2">
+                                                    <div className="space-y-1">
+                                                      <Label className="text-xs text-muted-foreground">Title</Label>
+                                                      <Input
+                                                        placeholder="File title"
+                                                        value={slide.title}
+                                                        onChange={(e) => updateSlide(courseIndex, topicIndex, slideIndex, 'title', e.target.value)}
+                                                        className="h-7 text-xs"
+                                                      />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                      <Label className="text-xs text-muted-foreground">Google Drive URL</Label>
+                                                      <Input
+                                                        placeholder="https://drive.google.com/file/d/..."
+                                                        value={slide.google_drive_url}
+                                                        onChange={(e) => updateSlide(courseIndex, topicIndex, slideIndex, 'google_drive_url', e.target.value)}
+                                                        className="h-7 text-xs"
+                                                      />
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          )}
+                                        </div>
+                                    </CardContent>
+                                  </Card>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                            {/* Study Resources Section */}
+                            <div className="space-y-3 mt-4 pt-3 border-t border-border/50">
+                              <div className="flex items-center justify-between">
+                                <Label className="text-xs font-medium text-muted-foreground">Study Resources</Label>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => addStudyResource(courseIndex)}
+                                  className="h-7 text-xs"
+                                >
+                                  <Plus className="h-3 w-3 mr-1" />
+                                  Add Resource
+                                </Button>
+                              </div>
+
+                              {course.study_resources.length === 0 ? (
+                                <div className="text-center py-4 text-muted-foreground bg-muted/20 rounded border-dashed border border-muted-foreground/25">
+                                  <p className="text-xs">No study resources added</p>
+                                  <p className="text-xs mt-1 opacity-75">Add notes, questions, or syllabus</p>
+                                </div>
+                              ) : (
+                                <div className="space-y-3">
+                                  {course.study_resources.map((resource, resourceIndex) => (
+                                    <Card key={resourceIndex} className="border border-border/50 shadow-sm">
+                                      <CardContent className="p-3">
+                                        <div className="flex items-center justify-between mb-3">
+                                          <div className="flex items-center gap-2">
+                                            <div className="w-5 h-5 bg-muted rounded-full flex items-center justify-center">
+                                              <span className="text-xs">
+                                                {resource.type === 'note' ? '📝' : resource.type === 'previous_question' ? '❓' : '📋'}
+                                              </span>
+                                            </div>
+                                            <h4 className="text-xs font-medium">
+                                              {resource.type === 'note' ? 'Note' : resource.type === 'previous_question' ? 'Question' : 'Syllabus'} {resourceIndex + 1}
+                                            </h4>
+                                          </div>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => removeStudyResource(courseIndex, resourceIndex)}
+                                            className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive"
+                                          >
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+
+                                        <div className="grid gap-2 md:grid-cols-2 mb-3">
+                                          <div className="space-y-1">
+                                            <Label className="text-xs text-muted-foreground">Title *</Label>
+                                            <Input
+                                              placeholder="e.g., Chapter 1 Notes"
+                                              value={resource.title}
+                                              onChange={(e) => updateStudyResource(courseIndex, resourceIndex, 'title', e.target.value)}
+                                              className="h-8 text-sm"
+                                            />
+                                          </div>
+                                          <div className="space-y-1">
+                                            <Label className="text-xs text-muted-foreground">Type *</Label>
+                                            <Select
+                                              value={resource.type || 'note'}
+                                              onValueChange={(value) => updateStudyResource(courseIndex, resourceIndex, 'type', value)}
+                                            >
+                                              <SelectTrigger className="h-8 text-sm">
+                                                <SelectValue />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="note">Note</SelectItem>
+                                                <SelectItem value="previous_question">Question</SelectItem>
+                                                <SelectItem value="syllabus">Syllabus</SelectItem>
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+                                        </div>
+
+                                        <div className="space-y-3">
+                                          <div className="space-y-2">
+                                            <Label className="text-xs text-muted-foreground">Content Type</Label>
+                                            <div className="flex gap-2">
+                                              <Button
+                                                type="button"
+                                                variant={(resource.content_url && resource.content_url.trim() !== '') ? "default" : "outline"}
+                                                size="sm"
+                                                onClick={() => {
+                                                  updateStudyResource(courseIndex, resourceIndex, 'content_url', 'file')
+                                                  updateStudyResource(courseIndex, resourceIndex, 'description', '')
+                                                }}
+                                                className="flex-1 h-8 text-xs"
+                                              >
+                                                📁 File
+                                              </Button>
+                                              <Button
+                                                type="button"
+                                                variant={(!resource.content_url || resource.content_url.trim() === '') && resource.description ? "default" : "outline"}
+                                                size="sm"
+                                                onClick={() => {
+                                                  updateStudyResource(courseIndex, resourceIndex, 'content_url', '')
+                                                  updateStudyResource(courseIndex, resourceIndex, 'description', 'text')
+                                                }}
+                                                className="flex-1 h-8 text-xs"
+                                              >
+                                                📝 Text
+                                              </Button>
+                                            </div>
+                                          </div>
+
+                                          {(resource.content_url && resource.content_url.trim() !== '' && resource.content_url !== 'text') ? (
+                                            <div className="space-y-1">
+                                              <Label className="text-xs text-muted-foreground">Google Drive URL</Label>
+                                              <Input
+                                                placeholder="https://drive.google.com/file/d/..."
+                                                value={resource.content_url === 'file' ? '' : resource.content_url}
+                                                onChange={(e) => updateStudyResource(courseIndex, resourceIndex, 'content_url', e.target.value)}
+                                                className="h-8 text-sm"
+                                              />
+                                            </div>
+                                          ) : (
+                                            <div className="space-y-1">
+                                              <Label className="text-xs text-muted-foreground">Content</Label>
+                                              <Textarea
+                                                placeholder={
+                                                  resource.type === 'syllabus'
+                                                    ? "Enter syllabus content..."
+                                                    : resource.type === 'note'
+                                                    ? "Enter notes..."
+                                                    : "Enter questions..."
+                                                }
+                                                value={resource.description === 'text' ? '' : resource.description || ''}
+                                                onChange={(e) => updateStudyResource(courseIndex, resourceIndex, 'description', e.target.value)}
+                                                rows={4}
+                                                className="resize-none text-sm"
+                                              />
+                                            </div>
+                                          )}
+                                        </div>
+                                      </CardContent>
+                                    </Card>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex items-center justify-between pt-4 border-t border-border/50">
+                  <Button
+                    variant="outline"
+                    onClick={() => setViewMode('list')}
+                    size="sm"
+                    className="h-9 text-sm"
+                  >
+                    <X className="h-3 w-3 mr-1" />
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={isCreating}
+                    size="sm"
+                    className="h-9 text-sm"
+                  >
+                    {isCreating ? (
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    ) : (
+                      <Save className="h-3 w-3 mr-1" />
+                    )}
+                    {editingSemester ? 'Update' : 'Create'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Edit View */}
+          <TabsContent value="edit" className="space-y-4 mt-6">
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-medium flex items-center gap-2">
+                  <Edit3 className="h-4 w-4" />
+                  Edit Semester
+                </CardTitle>
+                <CardDescription className="text-xs text-muted-foreground">
+                  Modify semester details and courses
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Edit functionality will be implemented here
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   )
 }
