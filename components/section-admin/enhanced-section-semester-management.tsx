@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import React, { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -43,19 +43,30 @@ import {
   Upload,
   Star,
   Users,
-  TrendingUp
+  TrendingUp,
+  AlertTriangle
 } from "lucide-react"
 
 // Enhanced interfaces for section admin semester management
+interface ExamDetails {
+  date?: string
+  time?: string
+  duration?: number // in minutes
+  location?: string
+  instructions?: string
+  total_marks?: number
+  pass_marks?: number
+}
+
 interface SemesterData {
   id?: string
   title: string
   description: string
   section: string
-  semester_type: 'Fall' | 'Spring' | 'Summer'
-  year: number
   has_midterm: boolean
   has_final: boolean
+  midterm_details?: ExamDetails
+  final_details?: ExamDetails
   start_date?: string
   end_date?: string
   default_credits?: number
@@ -128,7 +139,7 @@ interface StudyResourceData {
   id?: string
   title: string
   description?: string
-  type: 'note' | 'previous_question' | 'syllabus'
+  type: 'exam_note' | 'previous_questions' | 'syllabus' | 'mark_distribution' | 'assignment' | 'lab_manual' | 'reference_book'
   content_url?: string
   course_id?: string
   exam_type?: string
@@ -146,8 +157,25 @@ interface SemesterSummary extends SemesterData {
   students_count?: number
 }
 
+// Helper interface for form data
+interface SemesterFormData {
+  title: string
+  description: string
+  section: string
+  semester_type: 'Fall' | 'Spring' | 'Summer'
+  year: number
+  has_midterm: boolean
+  has_final: boolean
+  midterm_details?: ExamDetails
+  final_details?: ExamDetails
+  start_date?: string
+  end_date?: string
+  default_credits?: number
+  is_active?: boolean
+}
+
 interface AllInOneData {
-  semester: SemesterData
+  semester: SemesterFormData
   courses: CourseData[]
 }
 
@@ -164,6 +192,7 @@ export function EnhancedSectionSemesterManagement() {
   const [filteredSemesters, setFilteredSemesters] = useState<SemesterSummary[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
+  const [authError, setAuthError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [sortField, setSortField] = useState<SortField>('updated_at')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
@@ -187,6 +216,24 @@ export function EnhancedSectionSemesterManagement() {
       year: new Date().getFullYear(),
       has_midterm: true,
       has_final: true,
+      midterm_details: {
+        date: "",
+        time: "",
+        duration: 120,
+        location: "",
+        instructions: "",
+        total_marks: 100,
+        pass_marks: 40
+      },
+      final_details: {
+        date: "",
+        time: "",
+        duration: 180,
+        location: "",
+        instructions: "",
+        total_marks: 100,
+        pass_marks: 40
+      },
       start_date: "",
       end_date: "",
       default_credits: 3,
@@ -203,76 +250,212 @@ export function EnhancedSectionSemesterManagement() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
+
+        if (response.status === 401) {
+          setAuthError('Authentication required. Please log in as a section admin.')
+          return
+        } else if (response.status === 403) {
+          setAuthError('Access denied. You need section admin permissions.')
+          return
+        }
+
         throw new Error(errorData.error || `Server error: ${response.status}`)
       }
 
       const data = await response.json()
-      setSemesters(data || [])
+      console.log('API Response:', data)
+      const semesters = data.semesters || data || []
+      console.log('Semesters to set:', semesters)
 
-      if (!data || data.length === 0) {
+      // Transform the data to match the expected interface
+      const transformedSemesters = semesters.map((semester: any) => {
+        const yearMatch = semester.title?.match(/\d{4}/)
+        return {
+          ...semester,
+          semester_type: semester.title?.includes('Fall') ? 'Fall' :
+                        semester.title?.includes('Spring') ? 'Spring' :
+                        semester.title?.includes('Summer') ? 'Summer' : 'Fall',
+          year: yearMatch ? parseInt(yearMatch[0]) : new Date().getFullYear(),
+          exam_type: semester.has_midterm && semester.has_final ? 'Both' :
+                     semester.has_midterm ? 'Midterm' :
+                     semester.has_final ? 'Final' : 'None'
+        }
+      })
+
+      console.log('Transformed semesters:', transformedSemesters)
+      setSemesters(transformedSemesters)
+
+      if (!transformedSemesters || transformedSemesters.length === 0) {
         toast.info('No semesters found. Create your first semester!')
       }
     } catch (error) {
       console.error('Error loading semesters:', error)
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
       toast.error(`Failed to load semesters: ${errorMessage}`)
-      
-      // Set mock data for development
-      setSemesters([
-        {
-          id: '1',
-          title: 'Fall 2024',
-          description: 'Fall semester 2024 for Computer Science',
-          section: 'CS-A',
-          semester_type: 'Fall',
-          year: 2024,
-          exam_type: 'Both',
-          has_midterm: true,
-          has_final: true,
-          is_active: true,
-          courses_count: 6,
-          topics_count: 24,
-          materials_count: 48,
-          study_resources_count: 12,
-          students_count: 45,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        },
-        {
-          id: '2',
-          title: 'Spring 2024',
-          description: 'Spring semester 2024 for Computer Science',
-          section: 'CS-A',
-          semester_type: 'Spring',
-          year: 2024,
-          exam_type: 'Both',
-          has_midterm: true,
-          has_final: true,
-          is_active: false,
-          courses_count: 5,
-          topics_count: 20,
-          materials_count: 40,
-          study_resources_count: 10,
-          students_count: 42,
-          created_at: new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000).toISOString(),
-          updated_at: new Date(Date.now() - 1 * 30 * 24 * 60 * 60 * 1000).toISOString()
-        }
-      ])
+
+      // Don't set mock data - let the error be visible
+      setSemesters([])
     } finally {
       setIsLoading(false)
     }
   }, [])
+
+  // Helper function to extract semester type and year from title
+  const parseSemesterTitle = (title: string) => {
+    const match = title.match(/^(Fall|Spring|Summer)\s+(\d{4})/)
+    return {
+      type: match ? match[1] as 'Fall' | 'Spring' | 'Summer' : 'Fall',
+      year: match ? parseInt(match[2]) : new Date().getFullYear(),
+      displayTitle: match ? title.replace(match[0], '').replace(/^\s*-\s*/, '') : title
+    }
+  }
+
+  // Delete semester function
+  const handleDeleteSemester = async (semesterId: string) => {
+    if (!semesterId) return
+
+    setIsDeleting(semesterId)
+    try {
+      const response = await fetch(`/api/section-admin/semesters/${semesterId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `Server error: ${response.status}`)
+      }
+
+      // Remove the semester from the local state
+      setSemesters(prev => prev.filter(s => s.id !== semesterId))
+      toast.success('Semester deleted successfully!')
+
+    } catch (error) {
+      console.error('Error deleting semester:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      toast.error(`Failed to delete semester: ${errorMessage}`)
+    } finally {
+      setIsDeleting(null)
+    }
+  }
+
+  // Edit semester function
+  const handleEditSemester = async (semesterId: string) => {
+    if (!semesterId) return
+
+    try {
+      // Fetch the semester details
+      const response = await fetch(`/api/section-admin/semesters/${semesterId}`)
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `Server error: ${response.status}`)
+      }
+
+      const semesterData = await response.json()
+      console.log('📊 Semester data from API:', semesterData)
+
+      // Transform the courses data to match the form structure
+      const transformedCourses = (semesterData.courses || []).map((course: any) => ({
+        title: course.title || '',
+        code: course.code || '',
+        credits: course.credits || 3,
+        description: course.description || '',
+        topics: (course.topics || []).map((topic: any) => ({
+          title: topic.title || '',
+          description: topic.description || '',
+          slides: (topic.slides || []).map((slide: any) => ({
+            title: slide.title || '',
+            google_drive_url: slide.google_drive_url || slide.url || '',
+            description: slide.description || ''
+          })),
+          videos: (topic.videos || []).map((video: any) => ({
+            title: video.title || '',
+            youtube_url: video.youtube_url || video.url || '',
+            description: video.description || ''
+          }))
+        })),
+        study_resources: (course.study_tools || course.study_resources || []).map((resource: any) => ({
+          title: resource.title || '',
+          type: resource.type || 'exam_note',
+          content_url: resource.content_url || '',
+          exam_type: resource.exam_type || 'both',
+          description: resource.description || ''
+        }))
+      }))
+
+      console.log('🔄 Transformed courses:', transformedCourses)
+
+      // Validate the transformed data
+      if (!Array.isArray(transformedCourses)) {
+        console.error('❌ Transformed courses is not an array:', transformedCourses)
+        throw new Error('Invalid course data structure')
+      }
+
+      // Transform the data to match the form structure
+      const transformedData = {
+        semester: {
+          title: semesterData.title?.replace(/^(Fall|Spring|Summer)\s+\d{4}\s*-?\s*/, '') || '',
+          description: semesterData.description || '',
+          section: semesterData.section || '',
+          semester_type: semesterData.title?.includes('Fall') ? 'Fall' :
+                        semesterData.title?.includes('Spring') ? 'Spring' :
+                        semesterData.title?.includes('Summer') ? 'Summer' : 'Fall',
+          year: semesterData.title?.match(/\d{4}/)?.[0] ? parseInt(semesterData.title.match(/\d{4}/)[0]) : new Date().getFullYear(),
+          has_midterm: semesterData.has_midterm || false,
+          has_final: semesterData.has_final || false,
+          midterm_details: semesterData.midterm_details || {
+            date: '',
+            time: '',
+            duration: 120,
+            location: '',
+            instructions: '',
+            total_marks: 100,
+            pass_marks: 40
+          },
+          final_details: semesterData.final_details || {
+            date: '',
+            time: '',
+            duration: 180,
+            location: '',
+            instructions: '',
+            total_marks: 100,
+            pass_marks: 40
+          },
+          start_date: semesterData.start_date || '',
+          end_date: semesterData.end_date || '',
+          default_credits: semesterData.default_credits || 3,
+          is_active: semesterData.is_active !== false
+        },
+        courses: transformedCourses
+      }
+
+      setFormData(transformedData)
+      setEditingSemester(semesterId)
+      setViewMode('create') // Reuse the create form for editing
+
+    } catch (error) {
+      console.error('Error loading semester for edit:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      toast.error(`Failed to load semester: ${errorMessage}`)
+    }
+  }
 
   // Filter and sort semesters
   useEffect(() => {
     let filtered = semesters.filter(semester => {
       const matchesSearch = semester.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            semester.section.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           semester.description.toLowerCase().includes(searchTerm.toLowerCase())
+                           (semester.description || '').toLowerCase().includes(searchTerm.toLowerCase())
 
       const matchesSection = filterSection === "all" || semester.section === filterSection
-      const matchesYear = filterYear === "all" || semester.year.toString() === filterYear
-      const matchesSemesterType = filterSemesterType === "all" || semester.semester_type === filterSemesterType
+
+      const parsed = parseSemesterTitle(semester.title)
+      const matchesYear = filterYear === "all" || parsed.year.toString() === filterYear
+      const matchesSemesterType = filterSemesterType === "all" || parsed.type === filterSemesterType
+
       const isActive = semester.is_active ?? true
       const matchesStatus = filterStatus === "all" ||
                            (filterStatus === "active" && isActive) ||
@@ -304,7 +487,7 @@ export function EnhancedSectionSemesterManagement() {
 
   // Get unique values for filters
   const uniqueSections = Array.from(new Set(semesters.map(s => s.section))).sort()
-  const uniqueYears = Array.from(new Set(semesters.map(s => s.year))).sort((a, b) => b - a)
+  const uniqueYears = Array.from(new Set(semesters.map(s => parseSemesterTitle(s.title).year))).sort((a, b) => b - a)
 
   // Load data on mount
   useEffect(() => {
@@ -313,19 +496,48 @@ export function EnhancedSectionSemesterManagement() {
 
   // Handle form submission
   const handleSubmit = async () => {
+    console.log('handleSubmit called')
+    console.log('Current form data:', formData)
+    console.log('Editing semester:', editingSemester)
     setIsCreating(true)
     try {
-      const response = await fetch('/api/section-admin/semesters', {
-        method: 'POST',
+      // Transform form data to match database schema
+      const transformedData = {
+        semester: {
+          title: `${formData.semester.semester_type} ${formData.semester.year}${formData.semester.title ? ` - ${formData.semester.title}` : ''}`,
+          description: formData.semester.description,
+          section: formData.semester.section,
+          has_midterm: formData.semester.has_midterm,
+          has_final: formData.semester.has_final,
+          midterm_details: formData.semester.has_midterm ? formData.semester.midterm_details : null,
+          final_details: formData.semester.has_final ? formData.semester.final_details : null,
+          start_date: formData.semester.start_date || null,
+          end_date: formData.semester.end_date || null,
+          default_credits: formData.semester.default_credits || 3,
+          is_active: formData.semester.is_active
+        },
+        courses: formData.courses
+      }
+
+      const isEditing = !!editingSemester
+      const url = isEditing
+        ? `/api/section-admin/semesters/${editingSemester}`
+        : '/api/section-admin/semesters'
+      const method = isEditing ? 'PUT' : 'POST'
+
+      console.log('Sending data to API:', transformedData)
+
+      const response = await fetch(url, {
+        method: method,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(transformedData),
       })
 
       if (response.ok) {
         const result = await response.json()
-        console.log('Semester created successfully:', result)
+        console.log(`Semester ${isEditing ? 'updated' : 'created'} successfully:`, result)
 
         // Reset form
         setFormData({
@@ -337,6 +549,24 @@ export function EnhancedSectionSemesterManagement() {
             year: new Date().getFullYear(),
             has_midterm: true,
             has_final: true,
+            midterm_details: {
+              date: "",
+              time: "",
+              duration: 120,
+              location: "",
+              instructions: "",
+              total_marks: 100,
+              pass_marks: 40
+            },
+            final_details: {
+              date: "",
+              time: "",
+              duration: 180,
+              location: "",
+              instructions: "",
+              total_marks: 100,
+              pass_marks: 40
+            },
             start_date: "",
             end_date: "",
             default_credits: 3,
@@ -348,15 +578,39 @@ export function EnhancedSectionSemesterManagement() {
         // Reload semesters
         await loadSemesters()
 
+        // Reset editing state
+        setEditingSemester(null)
+
         // Switch to list view
         setViewMode('list')
 
         // Show success message
-        toast.success('Semester created successfully!')
+        toast.success(`Semester ${isEditing ? 'updated' : 'created'} successfully!`)
       } else {
-        const error = await response.json()
-        console.error('Failed to create semester:', error)
-        toast.error(`Failed to create semester: ${error.error || 'Unknown error'}`)
+        const errorText = await response.text()
+        let errorData
+        try {
+          errorData = JSON.parse(errorText)
+        } catch {
+          errorData = { error: errorText || `HTTP ${response.status}` }
+        }
+
+        console.error('Failed to create semester:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorText: errorText,
+          errorData: errorData,
+          transformedData: transformedData
+        })
+
+        if (response.status === 401) {
+          toast.error('Authentication required. Please log in as a section admin.')
+        } else if (response.status === 403) {
+          toast.error('Access denied. You need section admin permissions.')
+        } else {
+          const errorMessage = errorData?.error || errorText || `HTTP ${response.status}: ${response.statusText}`
+          toast.error(`Failed to create semester: ${errorMessage}`)
+        }
       }
     } catch (error) {
       console.error('Error creating semester:', error)
@@ -587,7 +841,7 @@ export function EnhancedSectionSemesterManagement() {
     const newStudyResource: StudyResourceData = {
       title: "",
       description: "",
-      type: "note",
+      type: "exam_note",
       content_url: "",
       exam_type: "both",
       is_downloadable: true
@@ -629,6 +883,29 @@ export function EnhancedSectionSemesterManagement() {
     }))
   }
 
+  // Show authentication error if present
+  if (authError) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6 text-center space-y-4">
+            <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mx-auto">
+              <AlertTriangle className="h-6 w-6 text-red-600" />
+            </div>
+            <h2 className="text-lg font-semibold">Authentication Required</h2>
+            <p className="text-muted-foreground">{authError}</p>
+            <Button
+              onClick={() => router.push('/admin-login')}
+              className="w-full"
+            >
+              Go to Login
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   if (isLoading && viewMode === 'list') {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -641,280 +918,419 @@ export function EnhancedSectionSemesterManagement() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-                <GraduationCap className="h-6 w-6" />
-                Semester Management
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Manage semester structures and academic content
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <Badge variant="secondary" className="text-xs">
-                {filteredSemesters.length} of {semesters.length}
-              </Badge>
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Users className="h-3 w-3" />
-                <span>{semesters.reduce((acc, s) => acc + (s.students_count || 0), 0)}</span>
+    <>
+      <div className="min-h-screen bg-background">
+        {/* Header */}
+        <div className="border-b border-border bg-background">
+          <div className="container mx-auto px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-3">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <GraduationCap className="h-5 w-5 text-primary" />
+                  </div>
+                  Semester Management
+                </h1>
+                <p className="text-sm text-muted-foreground ml-11">
+                  Create and manage academic semesters with courses and content
+                </p>
               </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3 text-sm">
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-primary rounded-full"></div>
+                  <span className="font-medium">{filteredSemesters.length}</span>
+                  <span className="text-muted-foreground">semesters</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">{semesters.reduce((acc, s) => acc + (s.students_count || 0), 0)}</span>
+                  <span className="text-muted-foreground">students</span>
+                </div>
+              </div>
+              <Button
+                onClick={() => setViewMode('create')}
+                className="h-9 px-4"
+                disabled={isLoading}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                New Semester
+              </Button>
             </div>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-6 py-6">
         <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as ViewMode)}>
-          <TabsList className="grid w-full grid-cols-3 bg-muted/50">
-            <TabsTrigger value="list" className="flex items-center gap-2 data-[state=active]:bg-background">
-              <Calendar className="h-4 w-4" />
-              List
-            </TabsTrigger>
-            <TabsTrigger value="create" className="flex items-center gap-2 data-[state=active]:bg-background">
-              <Plus className="h-4 w-4" />
-              Create
-            </TabsTrigger>
-            <TabsTrigger value="edit" className="flex items-center gap-2 data-[state=active]:bg-background" disabled={!editingSemester}>
-              <Edit3 className="h-4 w-4" />
-              Edit
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex items-center justify-between mb-6">
+            <TabsList className="grid grid-cols-2 w-auto bg-muted/50">
+              <TabsTrigger value="list" className="flex items-center gap-2 data-[state=active]:bg-background px-6">
+                <Calendar className="h-4 w-4" />
+                All Semesters
+              </TabsTrigger>
+              <TabsTrigger value="create" className="flex items-center gap-2 data-[state=active]:bg-background px-6">
+                <Plus className="h-4 w-4" />
+                Create New
+              </TabsTrigger>
+            </TabsList>
+
+            {viewMode === 'list' && (
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={loadSemesters} size="sm" disabled={isLoading}>
+                  <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
+            )}
+          </div>
 
           {/* List View */}
-          <TabsContent value="list" className="space-y-4 mt-6">
-            {/* Filters and Search */}
+          <TabsContent value="list" className="space-y-6 mt-0">
+            {/* Quick Stats */}
+            {semesters.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Card className="border-0 shadow-sm bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/50 dark:to-blue-900/30">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-blue-500/10 rounded-lg">
+                        <Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Total Semesters</p>
+                        <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{semesters.length}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-0 shadow-sm bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/50 dark:to-green-900/30">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-green-500/10 rounded-lg">
+                        <BookOpen className="h-4 w-4 text-green-600 dark:text-green-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Total Courses</p>
+                        <p className="text-2xl font-bold text-green-600 dark:text-green-400">{semesters.reduce((acc, s) => acc + (s.courses_count || 0), 0)}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-0 shadow-sm bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-950/50 dark:to-purple-900/30">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-purple-500/10 rounded-lg">
+                        <FileText className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Total Topics</p>
+                        <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{semesters.reduce((acc, s) => acc + (s.topics_count || 0), 0)}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-0 shadow-sm bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-950/50 dark:to-orange-900/30">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-orange-500/10 rounded-lg">
+                        <Users className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Total Students</p>
+                        <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{semesters.reduce((acc, s) => acc + (s.students_count || 0), 0)}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Search and Filters */}
             <Card className="border-0 shadow-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-medium flex items-center gap-2">
-                  <Filter className="h-4 w-4" />
-                  Filters
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-3 md:grid-cols-6">
-                  <div className="space-y-2">
-                    <Label className="text-xs font-medium text-muted-foreground">Search</Label>
+              <CardContent className="p-4">
+                <div className="flex flex-col md:flex-row gap-4">
+                  <div className="flex-1">
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
-                        placeholder="Search..."
+                        placeholder="Search semesters by title, section, or description..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-9 h-9 text-sm"
+                        className="pl-10 h-10"
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label className="text-xs font-medium text-muted-foreground">Section</Label>
+                  <div className="flex gap-2">
                     <Select value={filterSection} onValueChange={setFilterSection}>
-                      <SelectTrigger className="h-9 text-sm">
-                        <SelectValue placeholder="All" />
+                      <SelectTrigger className="w-32">
+                        <SelectValue placeholder="Section" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="all">All Sections</SelectItem>
                         {uniqueSections.map(section => (
                           <SelectItem key={section} value={section}>{section}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
 
-                  <div className="space-y-2">
-                    <Label className="text-xs font-medium text-muted-foreground">Year</Label>
-                    <Select value={filterYear} onValueChange={setFilterYear}>
-                      <SelectTrigger className="h-9 text-sm">
-                        <SelectValue placeholder="All" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All</SelectItem>
-                        {uniqueYears.map(year => (
-                          <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-xs font-medium text-muted-foreground">Type</Label>
                     <Select value={filterSemesterType} onValueChange={setFilterSemesterType}>
-                      <SelectTrigger className="h-9 text-sm">
-                        <SelectValue placeholder="All" />
+                      <SelectTrigger className="w-28">
+                        <SelectValue placeholder="Type" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="all">All Types</SelectItem>
                         <SelectItem value="Fall">Fall</SelectItem>
                         <SelectItem value="Spring">Spring</SelectItem>
                         <SelectItem value="Summer">Summer</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
 
-                  <div className="space-y-2">
-                    <Label className="text-xs font-medium text-muted-foreground">Status</Label>
                     <Select value={filterStatus} onValueChange={setFilterStatus}>
-                      <SelectTrigger className="h-9 text-sm">
-                        <SelectValue placeholder="All" />
+                      <SelectTrigger className="w-28">
+                        <SelectValue placeholder="Status" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="all">All Status</SelectItem>
                         <SelectItem value="active">Active</SelectItem>
                         <SelectItem value="inactive">Inactive</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-xs font-medium text-muted-foreground">Actions</Label>
-                    <div className="flex gap-2">
-                      <Button onClick={() => setViewMode('create')} size="sm" className="h-9 text-xs">
-                        <Plus className="h-3 w-3 mr-1" />
-                        Create
-                      </Button>
-                      <Button variant="outline" onClick={loadSemesters} size="sm" className="h-9 px-2">
-                        <RefreshCw className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Semesters Table */}
+
+
+            {/* Semesters List */}
             <Card className="border-0 shadow-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-medium">Semesters</CardTitle>
-                <CardDescription className="text-xs text-muted-foreground">
-                  Manage your academic semesters
-                </CardDescription>
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg font-semibold">Academic Semesters</CardTitle>
+                    <CardDescription className="text-sm text-muted-foreground mt-1">
+                      {filteredSemesters.length > 0
+                        ? `Showing ${filteredSemesters.length} of ${semesters.length} semesters`
+                        : "No semesters match your criteria"
+                      }
+                    </CardDescription>
+                  </div>
+                  {filteredSemesters.length > 0 && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <span>Sort by:</span>
+                      <Select value={sortField} onValueChange={(value) => setSortField(value as SortField)}>
+                        <SelectTrigger className="w-32 h-8">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="updated_at">Last Updated</SelectItem>
+                          <SelectItem value="title">Title</SelectItem>
+                          <SelectItem value="year">Year</SelectItem>
+                          <SelectItem value="section">Section</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                        className="h-8 w-8 p-0"
+                      >
+                        {sortOrder === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 {filteredSemesters.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Calendar className="h-8 w-8 mx-auto mb-3 text-muted-foreground/50" />
-                    <h3 className="text-sm font-medium mb-1">No semesters found</h3>
-                    <p className="text-xs text-muted-foreground mb-3">
+                  <div className="text-center py-12">
+                    <div className="mx-auto w-24 h-24 bg-muted/30 rounded-full flex items-center justify-center mb-4">
+                      <Calendar className="h-8 w-8 text-muted-foreground/50" />
+                    </div>
+                    <h3 className="text-lg font-medium mb-2">
+                      {semesters.length === 0 ? "No semesters yet" : "No matching semesters"}
+                    </h3>
+                    <p className="text-muted-foreground mb-6 max-w-md mx-auto">
                       {semesters.length === 0
-                        ? "Create your first semester to get started"
-                        : "Try adjusting your search or filter criteria"
+                        ? "Get started by creating your first semester. You can add courses, topics, and study materials to organize your academic content."
+                        : "Try adjusting your search terms or filters to find the semesters you're looking for."
                       }
                     </p>
-                    <Button onClick={() => setViewMode('create')} size="sm">
-                      <Plus className="h-3 w-3 mr-1" />
-                      Create Semester
-                    </Button>
+                    <div className="flex items-center justify-center gap-3">
+                      <Button onClick={() => setViewMode('create')} className="h-10 px-6">
+                        <Plus className="h-4 w-4 mr-2" />
+                        {semesters.length === 0 ? "Create First Semester" : "Create New Semester"}
+                      </Button>
+                      {semesters.length > 0 && (
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setSearchTerm("")
+                            setFilterSection("all")
+                            setFilterSemesterType("all")
+                            setFilterStatus("all")
+                            setFilterYear("all")
+                          }}
+                          className="h-10 px-6"
+                        >
+                          Clear Filters
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="border-border/50">
-                          <TableHead className="text-xs font-medium text-muted-foreground">Details</TableHead>
-                          <TableHead className="text-xs font-medium text-muted-foreground">Type</TableHead>
-                          <TableHead className="text-xs font-medium text-muted-foreground">Content</TableHead>
-                          <TableHead className="text-xs font-medium text-muted-foreground">Students</TableHead>
-                          <TableHead className="text-xs font-medium text-muted-foreground">Status</TableHead>
-                          <TableHead className="text-xs font-medium text-muted-foreground">Updated</TableHead>
-                          <TableHead className="text-xs font-medium text-muted-foreground text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredSemesters.map((semester) => (
-                          <TableRow key={semester.id} className="hover:bg-muted/30 border-border/50">
-                            <TableCell className="py-3">
-                              <div className="space-y-1">
-                                <div className="text-sm font-medium">{semester.title}</div>
-                                <div className="text-xs text-muted-foreground line-clamp-1">
-                                  {semester.description || "No description"}
-                                </div>
-                                <Badge variant="outline" className="text-xs h-5">
-                                  {semester.section}
-                                </Badge>
-                              </div>
-                            </TableCell>
-                            <TableCell className="py-3">
-                              <Badge variant="secondary" className="text-xs h-5">
-                                {semester.semester_type} {semester.year}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="py-3">
-                              <div className="space-y-1">
-                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                  <BookOpen className="h-3 w-3" />
-                                  {semester.courses_count}
-                                </div>
-                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                  <FileText className="h-3 w-3" />
-                                  {semester.topics_count}
-                                </div>
-                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                  <ClipboardList className="h-3 w-3" />
-                                  {semester.study_resources_count}
+                  <div className="space-y-4">
+                    {filteredSemesters.map((semester) => {
+                      const parsed = parseSemesterTitle(semester.title)
+                      return (
+                        <Card key={semester.id} className="border border-border/50 hover:border-border transition-colors">
+                          <CardContent className="p-6">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1 space-y-3">
+                                <div className="flex items-center gap-3">
+                                  <div className="flex items-center gap-2">
+                                    <h3 className="text-lg font-semibold">{parsed.displayTitle || semester.title}</h3>
+                                    <Badge variant="secondary" className="text-xs">
+                                      {parsed.type} {parsed.year}
+                                    </Badge>
+                                    <Badge variant="outline" className="text-xs">
+                                      {semester.section}
+                                    </Badge>
+                                  </div>
+                                <div className="flex items-center gap-2">
+                                  {(semester.is_active ?? true) ? (
+                                    <Badge variant="default" className="text-xs bg-green-100 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400">
+                                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1"></div>
+                                      Active
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="secondary" className="text-xs bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                                      <div className="w-1.5 h-1.5 bg-red-500 rounded-full mr-1"></div>
+                                      Inactive
+                                    </Badge>
+                                  )}
                                 </div>
                               </div>
-                            </TableCell>
-                            <TableCell className="py-3">
-                              <div className="flex items-center gap-1 text-xs">
-                                <Users className="h-3 w-3 text-muted-foreground" />
-                                <span className="font-medium">
-                                  {semester.students_count || 0}
-                                </span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="py-3">
-                              {(semester.is_active ?? true) ? (
-                                <Badge variant="default" className="text-xs h-5 bg-green-100 text-green-700 hover:bg-green-100">
-                                  Active
-                                </Badge>
-                              ) : (
-                                <Badge variant="secondary" className="text-xs h-5 bg-red-100 text-red-700">
-                                  Inactive
-                                </Badge>
+
+                              {semester.description && (
+                                <p className="text-sm text-muted-foreground line-clamp-2">
+                                  {semester.description}
+                                </p>
                               )}
-                            </TableCell>
-                            <TableCell className="py-3">
-                              <div className="text-xs text-muted-foreground">
-                                {new Date(semester.updated_at!).toLocaleDateString()}
+
+                              <div className="flex items-center gap-6 text-sm">
+                                <div className="flex items-center gap-1">
+                                  <BookOpen className="h-4 w-4 text-blue-500" />
+                                  <span className="font-medium">{semester.courses_count}</span>
+                                  <span className="text-muted-foreground">courses</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <FileText className="h-4 w-4 text-purple-500" />
+                                  <span className="font-medium">{semester.topics_count}</span>
+                                  <span className="text-muted-foreground">topics</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <ClipboardList className="h-4 w-4 text-orange-500" />
+                                  <span className="font-medium">{semester.study_resources_count}</span>
+                                  <span className="text-muted-foreground">resources</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Users className="h-4 w-4 text-green-500" />
+                                  <span className="font-medium">{semester.students_count || 0}</span>
+                                  <span className="text-muted-foreground">students</span>
+                                </div>
                               </div>
-                            </TableCell>
-                            <TableCell className="text-right py-3">
-                              <div className="flex items-center justify-end gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {/* handleView(semester.id!) */}}
-                                  className="h-7 w-7 p-0"
-                                >
-                                  <Eye className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {/* handleEdit(semester.id!) */}}
-                                  className="h-7 w-7 p-0"
-                                >
-                                  <Edit3 className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {/* handleDuplicate(semester.id!) */}}
-                                  className="h-7 w-7 p-0"
-                                >
-                                  <Copy className="h-3 w-3" />
-                                </Button>
+
+                              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                <span>Updated {new Date(semester.updated_at!).toLocaleDateString('en-US', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric'
+                                })}</span>
+                                {semester.has_midterm && (
+                                  <div className="flex items-center gap-1">
+                                    <Calendar className="h-3 w-3" />
+                                    <span>Midterm</span>
+                                  </div>
+                                )}
+                                {semester.has_final && (
+                                  <div className="flex items-center gap-1">
+                                    <Calendar className="h-3 w-3" />
+                                    <span>Final</span>
+                                  </div>
+                                )}
                               </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                            </div>
+
+                            <div className="flex items-center gap-1 ml-4">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {/* handleView(semester.id!) */}}
+                                className="h-9 px-3"
+                                title="View Details"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEditSemester(semester.id!)}
+                                className="h-9 px-3"
+                                title="Edit Semester"
+                              >
+                                <Edit3 className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {/* handleDuplicate(semester.id!) */}}
+                                className="h-9 px-3"
+                                title="Duplicate Semester"
+                              >
+                                <Copy className="h-4 w-4" />
+                              </Button>
+
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-9 px-3 text-destructive hover:text-destructive"
+                                    title="Delete Semester"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Semester</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to delete "{semester.title}"? This action cannot be undone and will permanently remove all associated courses, topics, and study materials.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleDeleteSemester(semester.id!)}
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      disabled={isDeleting === semester.id}
+                                    >
+                                      {isDeleting === semester.id ? 'Deleting...' : 'Delete'}
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      )
+                    })}
                   </div>
                 )}
               </CardContent>
@@ -922,229 +1338,368 @@ export function EnhancedSectionSemesterManagement() {
           </TabsContent>
 
           {/* Create View */}
-          <TabsContent value="create" className="space-y-4 mt-6">
+          <TabsContent value="create" className="space-y-6 mt-0">
+            {/* Progress Indicator */}
+            <div className="flex items-center gap-4 p-4 bg-muted/30 rounded-lg">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white text-sm font-medium">1</div>
+                <span className="text-sm font-medium">Semester Details</span>
+              </div>
+              <div className="flex-1 h-px bg-border"></div>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-muted border-2 border-border rounded-full flex items-center justify-center text-sm font-medium text-muted-foreground">2</div>
+                <span className="text-sm text-muted-foreground">Add Courses</span>
+              </div>
+              <div className="flex-1 h-px bg-border"></div>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-muted border-2 border-border rounded-full flex items-center justify-center text-sm font-medium text-muted-foreground">3</div>
+                <span className="text-sm text-muted-foreground">Review & Create</span>
+              </div>
+            </div>
+
             <Card className="border-0 shadow-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-medium flex items-center gap-2">
-                  <Plus className="h-4 w-4" />
-                  Create Semester
-                </CardTitle>
-                <CardDescription className="text-xs text-muted-foreground">
-                  Create a new semester with courses and content
-                </CardDescription>
+              <CardHeader className="pb-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    {editingSemester ? <Edit3 className="h-5 w-5 text-primary" /> : <Plus className="h-5 w-5 text-primary" />}
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl font-semibold">
+                      {editingSemester ? 'Edit Semester' : 'Create New Semester'}
+                    </CardTitle>
+                    <CardDescription className="text-sm text-muted-foreground mt-1">
+                      {editingSemester
+                        ? 'Modify semester details, courses, topics, and study materials'
+                        : 'Set up a new academic semester with courses, topics, and study materials'
+                      }
+                    </CardDescription>
+                  </div>
+                </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Semester Basic Info */}
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="create-semester-title" className="text-xs font-medium text-muted-foreground">
-                        Semester Title *
-                      </Label>
-                      <Input
-                        id="create-semester-title"
-                        placeholder="e.g., Fall 2025"
-                        value={formData.semester.title}
-                        onChange={(e) => setFormData(prev => ({
-                          ...prev,
-                          semester: { ...prev.semester, title: e.target.value }
-                        }))}
-                        className="h-9 text-sm"
-                      />
+              <CardContent className="space-y-8">
+                {/* Step 1: Basic Information */}
+                <div className="space-y-6">
+                  <div className="flex items-center gap-2 pb-2 border-b border-border/50">
+                    <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center">
+                      <span className="text-xs font-medium text-primary">1</span>
                     </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="create-semester-section" className="text-xs font-medium text-muted-foreground">
-                        Section *
-                      </Label>
-                      <Input
-                        id="create-semester-section"
-                        placeholder="e.g., CS-A"
-                        value={formData.semester.section}
-                        onChange={(e) => setFormData(prev => ({
-                          ...prev,
-                          semester: { ...prev.semester, section: e.target.value }
-                        }))}
-                        className="h-9 text-sm"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-2">
-                        <Label className="text-xs font-medium text-muted-foreground">Type *</Label>
-                        <Select
-                          value={formData.semester.semester_type}
-                          onValueChange={(value: 'Fall' | 'Spring' | 'Summer') =>
-                            setFormData(prev => ({
-                              ...prev,
-                              semester: { ...prev.semester, semester_type: value }
-                            }))
-                          }
-                        >
-                          <SelectTrigger className="h-9 text-sm">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Fall">Fall</SelectItem>
-                            <SelectItem value="Spring">Spring</SelectItem>
-                            <SelectItem value="Summer">Summer</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label className="text-xs font-medium text-muted-foreground">Year *</Label>
-                        <Input
-                          type="number"
-                          min="2020"
-                          max="2030"
-                          value={formData.semester.year}
-                          onChange={(e) => setFormData(prev => ({
-                            ...prev,
-                            semester: { ...prev.semester, year: parseInt(e.target.value) || new Date().getFullYear() }
-                          }))}
-                          className="h-9 text-sm"
-                        />
-                      </div>
-                    </div>
+                    <h3 className="text-lg font-semibold">Basic Information</h3>
                   </div>
 
-                  <div className="space-y-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="create-semester-description" className="text-xs font-medium text-muted-foreground">
-                        Description
-                      </Label>
-                      <Textarea
-                        id="create-semester-description"
-                        placeholder="Describe this semester..."
-                        value={formData.semester.description}
-                        onChange={(e) => setFormData(prev => ({
-                          ...prev,
-                          semester: { ...prev.semester, description: e.target.value }
-                        }))}
-                        rows={2}
-                        className="text-sm resize-none"
-                      />
+                  <div className="grid gap-6 md:grid-cols-2">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="create-semester-title" className="text-sm font-medium flex items-center gap-1">
+                          Semester Title
+                          <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          id="create-semester-title"
+                          placeholder="e.g., Fall 2025"
+                          value={formData.semester.title}
+                          onChange={(e) => setFormData(prev => ({
+                            ...prev,
+                            semester: { ...prev.semester, title: e.target.value }
+                          }))}
+                          className="h-11"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Choose a clear, descriptive title for this semester
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="create-semester-section" className="text-sm font-medium flex items-center gap-1">
+                          Section
+                          <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          id="create-semester-section"
+                          placeholder="e.g., CS-A, EEE-B, BBA-C"
+                          value={formData.semester.section}
+                          onChange={(e) => setFormData(prev => ({
+                            ...prev,
+                            semester: { ...prev.semester, section: e.target.value }
+                          }))}
+                          className="h-11"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Specify the department and section code
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium flex items-center gap-1">
+                            Semester Type
+                            <span className="text-red-500">*</span>
+                          </Label>
+                          <Select
+                            value={formData.semester.semester_type}
+                            onValueChange={(value: 'Fall' | 'Spring' | 'Summer') =>
+                              setFormData(prev => ({
+                                ...prev,
+                                semester: { ...prev.semester, semester_type: value }
+                              }))
+                            }
+                          >
+                            <SelectTrigger className="h-11">
+                              <SelectValue placeholder="Select type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Fall">🍂 Fall Semester</SelectItem>
+                              <SelectItem value="Spring">🌸 Spring Semester</SelectItem>
+                              <SelectItem value="Summer">☀️ Summer Semester</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium flex items-center gap-1">
+                            Academic Year
+                            <span className="text-red-500">*</span>
+                          </Label>
+                          <Input
+                            type="number"
+                            min="2020"
+                            max="2030"
+                            value={formData.semester.year}
+                            onChange={(e) => setFormData(prev => ({
+                              ...prev,
+                              semester: { ...prev.semester, year: parseInt(e.target.value) || new Date().getFullYear() }
+                            }))}
+                            className="h-11"
+                          />
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="semester-active"
-                        checked={formData.semester.is_active}
-                        onCheckedChange={(checked) => setFormData(prev => ({
-                          ...prev,
-                          semester: { ...prev.semester, is_active: checked }
-                        }))}
-                      />
-                      <Label htmlFor="semester-active" className="text-xs">
-                        Active Semester
-                      </Label>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="create-semester-description" className="text-sm font-medium">
+                          Description
+                        </Label>
+                        <Textarea
+                          id="create-semester-description"
+                          placeholder="Provide a brief description of this semester, including any special notes or objectives..."
+                          value={formData.semester.description}
+                          onChange={(e) => setFormData(prev => ({
+                            ...prev,
+                            semester: { ...prev.semester, description: e.target.value }
+                          }))}
+                          rows={3}
+                          className="resize-none"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Optional: Add context about this semester's focus or special characteristics
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
+                        <div className="space-y-1">
+                          <Label htmlFor="semester-active" className="text-sm font-medium">
+                            Semester Status
+                          </Label>
+                          <p className="text-xs text-muted-foreground">
+                            Active semesters are visible to students and can be enrolled in
+                          </p>
+                        </div>
+                        <Switch
+                          id="semester-active"
+                          checked={formData.semester.is_active}
+                          onCheckedChange={(checked) => setFormData(prev => ({
+                            ...prev,
+                            semester: { ...prev.semester, is_active: checked }
+                          }))}
+                        />
+                      </div>
+
+                      {/* Exam Configuration */}
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2 pb-2 border-b border-border/50">
+                          <h4 className="text-sm font-semibold">Exam Configuration</h4>
+                        </div>
+
+                        {/* Midterm Configuration */}
+                        <div className="space-y-4 p-4 border border-border/50 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                              <Label htmlFor="has-midterm" className="text-sm font-medium">
+                                Midterm Exam
+                              </Label>
+                              <p className="text-xs text-muted-foreground">
+                                Enable midterm examination for this semester
+                              </p>
+                            </div>
+                            <Switch
+                              id="has-midterm"
+                              checked={formData.semester.has_midterm}
+                              onCheckedChange={(checked) => setFormData(prev => ({
+                                ...prev,
+                                semester: { ...prev.semester, has_midterm: checked }
+                              }))}
+                            />
+                          </div>
+
+
+                        </div>
+
+                        {/* Final Configuration */}
+                        <div className="space-y-4 p-4 border border-border/50 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                              <Label htmlFor="has-final" className="text-sm font-medium">
+                                Final Exam
+                              </Label>
+                              <p className="text-xs text-muted-foreground">
+                                Enable final examination for this semester
+                              </p>
+                            </div>
+                            <Switch
+                              id="has-final"
+                              checked={formData.semester.has_final}
+                              onCheckedChange={(checked) => setFormData(prev => ({
+                                ...prev,
+                                semester: { ...prev.semester, has_final: checked }
+                              }))}
+                            />
+                          </div>
+
+
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Course Management Section */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-medium">Courses</h3>
+                {/* Step 2: Course Management */}
+                <div className="space-y-6">
+                  <div className="flex items-center gap-2 pb-2 border-b border-border/50">
+                    <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center">
+                      <span className="text-xs font-medium text-primary">2</span>
+                    </div>
+                    <h3 className="text-lg font-semibold">Course Setup</h3>
+                    <div className="flex-1"></div>
                     <Button
                       onClick={addCourse}
                       size="sm"
                       variant="outline"
-                      className="h-8 text-xs"
+                      className="h-9"
                     >
-                      <Plus className="h-3 w-3 mr-1" />
+                      <Plus className="h-4 w-4 mr-2" />
                       Add Course
                     </Button>
                   </div>
 
                   {formData.courses.length === 0 ? (
-                    <Card className="border-dashed border-muted-foreground/25">
-                      <CardContent className="flex flex-col items-center justify-center py-8">
-                        <BookOpen className="h-8 w-8 text-muted-foreground/50 mb-2" />
-                        <h3 className="text-sm font-medium mb-1">No courses added</h3>
-                        <p className="text-xs text-muted-foreground text-center mb-3">
-                          Add courses to organize your content
+                    <Card className="border-dashed border-muted-foreground/25 bg-muted/20">
+                      <CardContent className="flex flex-col items-center justify-center py-12">
+                        <div className="w-16 h-16 bg-muted/50 rounded-full flex items-center justify-center mb-4">
+                          <BookOpen className="h-8 w-8 text-muted-foreground/50" />
+                        </div>
+                        <h3 className="text-lg font-medium mb-2">No courses yet</h3>
+                        <p className="text-sm text-muted-foreground text-center mb-6 max-w-md">
+                          Start building your semester by adding courses. Each course can contain topics, videos, files, and study resources.
                         </p>
-                        <Button onClick={addCourse} size="sm" variant="outline" className="h-8 text-xs">
-                          <Plus className="h-3 w-3 mr-1" />
-                          Add Course
+                        <Button onClick={addCourse} className="h-10 px-6">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Your First Course
                         </Button>
                       </CardContent>
                     </Card>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-6">
                       {formData.courses.map((course, courseIndex) => (
                         <Card key={courseIndex} className="border border-border/50 shadow-sm">
-                          <CardHeader className="pb-3 bg-muted/20">
+                          <CardHeader className="pb-4">
                             <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center">
-                                  <BookOpen className="h-3 w-3 text-primary" />
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white font-medium">
+                                  {courseIndex + 1}
                                 </div>
-                                <CardTitle className="text-sm font-medium">Course {courseIndex + 1}</CardTitle>
+                                <div>
+                                  <CardTitle className="text-lg font-semibold">
+                                    {course.title || `Course ${courseIndex + 1}`}
+                                  </CardTitle>
+                                  <p className="text-sm text-muted-foreground">
+                                    {course.course_code || "No course code"} • {course.teacher_name || "No teacher assigned"}
+                                  </p>
+                                </div>
                               </div>
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => removeCourse(courseIndex)}
-                                className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                                className="h-9 w-9 p-0 text-muted-foreground hover:text-destructive"
+                                title="Remove course"
                               >
-                                <X className="h-3 w-3" />
+                                <X className="h-4 w-4" />
                               </Button>
                             </div>
                           </CardHeader>
-                          <CardContent className="space-y-3">
+                          <CardContent className="space-y-6">
                             {/* Course Basic Info */}
-                            <div className="grid gap-3 md:grid-cols-2">
-                              <div className="space-y-2">
-                                <Label className="text-xs font-medium text-muted-foreground">Course Name *</Label>
-                                <Input
-                                  placeholder="e.g., Data Structures"
-                                  value={course.title}
-                                  onChange={(e) => updateCourse(courseIndex, 'title', e.target.value)}
-                                  className="h-8 text-sm"
-                                />
+                            <div className="space-y-4">
+                              <h4 className="text-sm font-medium text-muted-foreground">Basic Information</h4>
+                              <div className="grid gap-4 md:grid-cols-2">
+                                <div className="space-y-2">
+                                  <Label className="text-sm font-medium flex items-center gap-1">
+                                    Course Name
+                                    <span className="text-red-500">*</span>
+                                  </Label>
+                                  <Input
+                                    placeholder="e.g., Data Structures and Algorithms"
+                                    value={course.title}
+                                    onChange={(e) => updateCourse(courseIndex, 'title', e.target.value)}
+                                    className="h-10"
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label className="text-sm font-medium flex items-center gap-1">
+                                    Course Code
+                                    <span className="text-red-500">*</span>
+                                  </Label>
+                                  <Input
+                                    placeholder="e.g., CSE-201"
+                                    value={course.course_code}
+                                    onChange={(e) => updateCourse(courseIndex, 'course_code', e.target.value)}
+                                    className="h-10"
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label className="text-sm font-medium flex items-center gap-1">
+                                    Instructor Name
+                                    <span className="text-red-500">*</span>
+                                  </Label>
+                                  <Input
+                                    placeholder="e.g., Dr. John Smith"
+                                    value={course.teacher_name}
+                                    onChange={(e) => updateCourse(courseIndex, 'teacher_name', e.target.value)}
+                                    className="h-10"
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label className="text-sm font-medium">Instructor Email</Label>
+                                  <Input
+                                    type="email"
+                                    placeholder="e.g., john.smith@diu.edu.bd"
+                                    value={course.teacher_email || ''}
+                                    onChange={(e) => updateCourse(courseIndex, 'teacher_email', e.target.value)}
+                                    className="h-10"
+                                  />
+                                </div>
                               </div>
-                              <div className="space-y-2">
-                                <Label className="text-xs font-medium text-muted-foreground">Course Code *</Label>
-                                <Input
-                                  placeholder="e.g., CSE-201"
-                                  value={course.course_code}
-                                  onChange={(e) => updateCourse(courseIndex, 'course_code', e.target.value)}
-                                  className="h-8 text-sm"
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <Label className="text-xs font-medium text-muted-foreground">Teacher Name *</Label>
-                                <Input
-                                  placeholder="e.g., Dr. John Smith"
-                                  value={course.teacher_name}
-                                  onChange={(e) => updateCourse(courseIndex, 'teacher_name', e.target.value)}
-                                  className="h-8 text-sm"
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <Label className="text-xs font-medium text-muted-foreground">Teacher Email</Label>
-                                <Input
-                                  type="email"
-                                  placeholder="e.g., john.smith@diu.edu.bd"
-                                  value={course.teacher_email || ''}
-                                  onChange={(e) => updateCourse(courseIndex, 'teacher_email', e.target.value)}
-                                  className="h-8 text-sm"
-                                />
-                              </div>
-                            </div>
 
-                            <div className="space-y-2">
-                              <Label className="text-xs font-medium text-muted-foreground">Course Description</Label>
-                              <Textarea
-                                placeholder="Brief description..."
-                                value={course.description || ''}
-                                onChange={(e) => updateCourse(courseIndex, 'description', e.target.value)}
-                                rows={2}
-                                className="text-sm resize-none"
-                              />
+                              <div className="space-y-2">
+                                <Label className="text-sm font-medium">Course Description</Label>
+                                <Textarea
+                                  placeholder="Provide a comprehensive description of the course objectives, content, and learning outcomes..."
+                                  value={course.description || ''}
+                                  onChange={(e) => updateCourse(courseIndex, 'description', e.target.value)}
+                                  rows={3}
+                                  className="resize-none"
+                                />
+                              </div>
                             </div>
 
                             {/* Topics Section */}
@@ -1393,16 +1948,20 @@ export function EnhancedSectionSemesterManagement() {
                                           <div className="space-y-1">
                                             <Label className="text-xs text-muted-foreground">Type *</Label>
                                             <Select
-                                              value={resource.type || 'note'}
+                                              value={resource.type || 'exam_note'}
                                               onValueChange={(value) => updateStudyResource(courseIndex, resourceIndex, 'type', value)}
                                             >
                                               <SelectTrigger className="h-8 text-sm">
                                                 <SelectValue />
                                               </SelectTrigger>
                                               <SelectContent>
-                                                <SelectItem value="note">Note</SelectItem>
-                                                <SelectItem value="previous_question">Question</SelectItem>
+                                                <SelectItem value="exam_note">Exam Note</SelectItem>
+                                                <SelectItem value="previous_questions">Previous Questions</SelectItem>
                                                 <SelectItem value="syllabus">Syllabus</SelectItem>
+                                                <SelectItem value="mark_distribution">Mark Distribution</SelectItem>
+                                                <SelectItem value="assignment">Assignment</SelectItem>
+                                                <SelectItem value="lab_manual">Lab Manual</SelectItem>
+                                                <SelectItem value="reference_book">Reference Book</SelectItem>
                                               </SelectContent>
                                             </Select>
                                           </div>
@@ -1414,11 +1973,11 @@ export function EnhancedSectionSemesterManagement() {
                                             <div className="flex gap-2">
                                               <Button
                                                 type="button"
-                                                variant={(resource.content_url && resource.content_url.trim() !== '') ? "default" : "outline"}
+                                                variant={(resource.content_url && resource.content_url.trim() !== '' && resource.content_url !== 'text') ? "default" : "outline"}
                                                 size="sm"
                                                 onClick={() => {
                                                   updateStudyResource(courseIndex, resourceIndex, 'content_url', 'file')
-                                                  updateStudyResource(courseIndex, resourceIndex, 'description', '')
+                                                  // Don't clear description when switching to file mode
                                                 }}
                                                 className="flex-1 h-8 text-xs"
                                               >
@@ -1426,11 +1985,11 @@ export function EnhancedSectionSemesterManagement() {
                                               </Button>
                                               <Button
                                                 type="button"
-                                                variant={(!resource.content_url || resource.content_url.trim() === '') && resource.description ? "default" : "outline"}
+                                                variant={(!resource.content_url || resource.content_url.trim() === '' || resource.content_url === 'text') ? "default" : "outline"}
                                                 size="sm"
                                                 onClick={() => {
-                                                  updateStudyResource(courseIndex, resourceIndex, 'content_url', '')
-                                                  updateStudyResource(courseIndex, resourceIndex, 'description', 'text')
+                                                  updateStudyResource(courseIndex, resourceIndex, 'content_url', 'text')
+                                                  // Keep existing description when switching to text mode
                                                 }}
                                                 className="flex-1 h-8 text-xs"
                                               >
@@ -1439,12 +1998,22 @@ export function EnhancedSectionSemesterManagement() {
                                             </div>
                                           </div>
 
-                                          {(resource.content_url && resource.content_url.trim() !== '' && resource.content_url !== 'text') ? (
+                                          {(resource.content_url && resource.content_url.trim() !== '' && resource.content_url !== 'text' && resource.content_url !== 'file') ? (
                                             <div className="space-y-1">
                                               <Label className="text-xs text-muted-foreground">Google Drive URL</Label>
                                               <Input
                                                 placeholder="https://drive.google.com/file/d/..."
-                                                value={resource.content_url === 'file' ? '' : resource.content_url}
+                                                value={resource.content_url}
+                                                onChange={(e) => updateStudyResource(courseIndex, resourceIndex, 'content_url', e.target.value)}
+                                                className="h-8 text-sm"
+                                              />
+                                            </div>
+                                          ) : resource.content_url === 'file' ? (
+                                            <div className="space-y-1">
+                                              <Label className="text-xs text-muted-foreground">File URL</Label>
+                                              <Input
+                                                placeholder="https://drive.google.com/file/d/... or other file URL"
+                                                value=""
                                                 onChange={(e) => updateStudyResource(courseIndex, resourceIndex, 'content_url', e.target.value)}
                                                 className="h-8 text-sm"
                                               />
@@ -1456,11 +2025,13 @@ export function EnhancedSectionSemesterManagement() {
                                                 placeholder={
                                                   resource.type === 'syllabus'
                                                     ? "Enter syllabus content..."
-                                                    : resource.type === 'note'
-                                                    ? "Enter notes..."
-                                                    : "Enter questions..."
+                                                    : resource.type === 'exam_note'
+                                                    ? "Enter exam notes..."
+                                                    : resource.type === 'previous_questions'
+                                                    ? "Enter previous questions..."
+                                                    : "Enter content..."
                                                 }
-                                                value={resource.description === 'text' ? '' : resource.description || ''}
+                                                value={resource.description || ''}
                                                 onChange={(e) => updateStudyResource(courseIndex, resourceIndex, 'description', e.target.value)}
                                                 rows={4}
                                                 className="resize-none text-sm"
@@ -1481,30 +2052,189 @@ export function EnhancedSectionSemesterManagement() {
                   )}
                 </div>
 
-                {/* Action Buttons */}
-                <div className="flex items-center justify-between pt-4 border-t border-border/50">
-                  <Button
-                    variant="outline"
-                    onClick={() => setViewMode('list')}
-                    size="sm"
-                    className="h-9 text-sm"
-                  >
-                    <X className="h-3 w-3 mr-1" />
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleSubmit}
-                    disabled={isCreating}
-                    size="sm"
-                    className="h-9 text-sm"
-                  >
-                    {isCreating ? (
-                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                    ) : (
-                      <Save className="h-3 w-3 mr-1" />
+                {/* Step 3: Review & Create */}
+                <div className="space-y-6">
+                  <div className="flex items-center gap-2 pb-2 border-b border-border/50">
+                    <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center">
+                      <span className="text-xs font-medium text-primary">3</span>
+                    </div>
+                    <h3 className="text-lg font-semibold">Review & Create</h3>
+                  </div>
+
+                  {/* Summary */}
+                  <div className="bg-muted/30 rounded-lg p-6 space-y-6">
+                    <div>
+                      <h4 className="text-sm font-medium mb-4">Semester Summary</h4>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <p className="text-sm">
+                            <span className="text-muted-foreground">Title:</span> {formData.semester.title || "Not specified"}
+                          </p>
+                          <p className="text-sm">
+                            <span className="text-muted-foreground">Section:</span> {formData.semester.section || "Not specified"}
+                          </p>
+                          <p className="text-sm">
+                            <span className="text-muted-foreground">Type:</span> {formData.semester.semester_type} {formData.semester.year}
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <p className="text-sm">
+                            <span className="text-muted-foreground">Courses:</span> {formData.courses.length}
+                          </p>
+                          <p className="text-sm">
+                            <span className="text-muted-foreground">Topics:</span> {formData.courses.reduce((acc, course) => acc + course.topics.length, 0)}
+                          </p>
+                          <p className="text-sm">
+                            <span className="text-muted-foreground">Status:</span> {formData.semester.is_active ? "Active" : "Inactive"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Exam Summary */}
+                    {(formData.semester.has_midterm || formData.semester.has_final) && (
+                      <div className="border-t border-border/50 pt-4">
+                        <h4 className="text-sm font-medium mb-4">Exam Configuration</h4>
+                        <div className="grid gap-4 md:grid-cols-2">
+                          {formData.semester.has_midterm && (
+                            <div className="space-y-2 p-3 bg-background/50 rounded-lg">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Calendar className="h-4 w-4 text-blue-500" />
+                                <span className="text-sm font-medium">Midterm Exam</span>
+                              </div>
+                              <div className="space-y-1 text-xs text-muted-foreground">
+                                {formData.semester.midterm_details?.date && (
+                                  <p>Date: {new Date(formData.semester.midterm_details.date).toLocaleDateString()}</p>
+                                )}
+                                {formData.semester.midterm_details?.time && (
+                                  <p>Time: {formData.semester.midterm_details.time}</p>
+                                )}
+                                {formData.semester.midterm_details?.duration && (
+                                  <p>Duration: {formData.semester.midterm_details.duration} minutes</p>
+                                )}
+                                {formData.semester.midterm_details?.location && (
+                                  <p>Location: {formData.semester.midterm_details.location}</p>
+                                )}
+                                {formData.semester.midterm_details?.total_marks && (
+                                  <p>Total Marks: {formData.semester.midterm_details.total_marks}</p>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {formData.semester.has_final && (
+                            <div className="space-y-2 p-3 bg-background/50 rounded-lg">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Calendar className="h-4 w-4 text-green-500" />
+                                <span className="text-sm font-medium">Final Exam</span>
+                              </div>
+                              <div className="space-y-1 text-xs text-muted-foreground">
+                                {formData.semester.final_details?.date && (
+                                  <p>Date: {new Date(formData.semester.final_details.date).toLocaleDateString()}</p>
+                                )}
+                                {formData.semester.final_details?.time && (
+                                  <p>Time: {formData.semester.final_details.time}</p>
+                                )}
+                                {formData.semester.final_details?.duration && (
+                                  <p>Duration: {formData.semester.final_details.duration} minutes</p>
+                                )}
+                                {formData.semester.final_details?.location && (
+                                  <p>Location: {formData.semester.final_details.location}</p>
+                                )}
+                                {formData.semester.final_details?.total_marks && (
+                                  <p>Total Marks: {formData.semester.final_details.total_marks}</p>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     )}
-                    {editingSemester ? 'Update' : 'Create'}
-                  </Button>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex items-center justify-between pt-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setViewMode('list')
+                        setEditingSemester(null)
+                        // Reset form data
+                        setFormData({
+                          semester: {
+                            title: "",
+                            description: "",
+                            section: "",
+                            semester_type: "Fall",
+                            year: new Date().getFullYear(),
+                            has_midterm: true,
+                            has_final: true,
+                            midterm_details: {
+                              date: "",
+                              time: "",
+                              duration: 120,
+                              location: "",
+                              instructions: "",
+                              total_marks: 100,
+                              pass_marks: 40
+                            },
+                            final_details: {
+                              date: "",
+                              time: "",
+                              duration: 180,
+                              location: "",
+                              instructions: "",
+                              total_marks: 100,
+                              pass_marks: 40
+                            },
+                            start_date: "",
+                            end_date: "",
+                            default_credits: 3,
+                            is_active: true
+                          },
+                          courses: []
+                        })
+                      }}
+                      className="h-11 px-6"
+                      disabled={isCreating}
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Cancel
+                    </Button>
+                    <div className="flex items-center gap-3">
+                      <p className="text-xs text-muted-foreground">
+                        {formData.semester.title && formData.semester.section ?
+                          "Ready to create semester" :
+                          "Please fill in required fields"
+                        }
+                      </p>
+                      <Button
+                        onClick={() => {
+                          console.log('Button clicked!')
+                          console.log('Form validation:', {
+                            hasTitle: !!formData.semester.title,
+                            hasSection: !!formData.semester.section,
+                            isCreating: isCreating
+                          })
+                          handleSubmit()
+                        }}
+                        disabled={isCreating || !formData.semester.title || !formData.semester.section}
+                        className="h-11 px-8"
+                      >
+                        {isCreating ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Creating...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="h-4 w-4 mr-2" />
+                            {editingSemester ? 'Update Semester' : 'Create Semester'}
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -1532,5 +2262,6 @@ export function EnhancedSectionSemesterManagement() {
         </Tabs>
       </div>
     </div>
+    </>
   )
 }
