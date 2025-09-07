@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useCallback } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -185,6 +185,7 @@ type ViewMode = 'list' | 'create' | 'edit'
 
 export function EnhancedSectionSemesterManagement() {
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   // State management
   const [viewMode, setViewMode] = useState<ViewMode>('list')
@@ -493,6 +494,14 @@ export function EnhancedSectionSemesterManagement() {
   useEffect(() => {
     loadSemesters()
   }, [loadSemesters])
+
+  // Handle URL parameters for direct navigation to create mode
+  useEffect(() => {
+    const mode = searchParams.get('mode')
+    if (mode === 'create') {
+      setViewMode('create')
+    }
+  }, [searchParams])
 
   // Handle form submission
   const handleSubmit = async () => {
@@ -918,49 +927,7 @@ export function EnhancedSectionSemesterManagement() {
   }
 
   return (
-    <>
-      <div className="min-h-screen bg-background">
-        {/* Header */}
-        <div className="border-b border-border bg-background">
-          <div className="container mx-auto px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-3">
-                  <div className="p-2 bg-primary/10 rounded-lg">
-                    <GraduationCap className="h-5 w-5 text-primary" />
-                  </div>
-                  Semester Management
-                </h1>
-                <p className="text-sm text-muted-foreground ml-11">
-                  Create and manage academic semesters with courses and content
-                </p>
-              </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-3 text-sm">
-                <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 bg-primary rounded-full"></div>
-                  <span className="font-medium">{filteredSemesters.length}</span>
-                  <span className="text-muted-foreground">semesters</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">{semesters.reduce((acc, s) => acc + (s.students_count || 0), 0)}</span>
-                  <span className="text-muted-foreground">students</span>
-                </div>
-              </div>
-              <Button
-                onClick={() => setViewMode('create')}
-                className="h-9 px-4"
-                disabled={isLoading}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                New Semester
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-
+    <div className="min-h-screen bg-background">
       {/* Main Content */}
       <div className="container mx-auto px-6 py-6">
         <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as ViewMode)}>
@@ -978,6 +945,14 @@ export function EnhancedSectionSemesterManagement() {
 
             {viewMode === 'list' && (
               <div className="flex items-center gap-2">
+                <Button
+                  onClick={() => setViewMode('create')}
+                  size="sm"
+                  disabled={isLoading}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Semester
+                </Button>
                 <Button variant="outline" onClick={loadSemesters} size="sm" disabled={isLoading}>
                   <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
                 </Button>
@@ -2262,6 +2237,5 @@ export function EnhancedSectionSemesterManagement() {
         </Tabs>
       </div>
     </div>
-    </>
   )
 }
