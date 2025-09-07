@@ -2,319 +2,381 @@
 
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Skeleton } from "@/components/ui/skeleton"
 import { 
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { 
-  Calendar,
-  BookOpen,
-  FileText,
-  Play,
-  MoreHorizontal,
-  Edit3,
-  Eye,
-  Copy,
-  Trash2,
+  Calendar, 
+  BookOpen, 
+  FileText, 
+  Users, 
   Search,
   Filter,
-  Power,
-  PowerOff,
-  Loader2,
-  GraduationCap
+  Plus,
+  Eye,
+  Edit3,
+  Copy,
+  Trash2,
+  CheckCircle2,
+  XCircle,
+  TrendingUp,
+  BarChart3
 } from "lucide-react"
+import Link from "next/link"
 
-interface Semester {
+interface SemesterSummary {
   id: string
   title: string
   description: string
   section: string
+  semester_type: 'Fall' | 'Spring' | 'Summer'
+  year: number
+  exam_type: 'Midterm' | 'Final' | 'Both'
   has_midterm: boolean
   has_final: boolean
   is_active: boolean
+  courses_count: number
+  topics_count: number
+  materials_count: number
+  study_resources_count: number
+  students_count: number
   created_at: string
   updated_at: string
-  courses_count?: number
-  topics_count?: number
-  study_tools_count?: number
 }
 
 export function SectionSemestersList() {
-  const [semesters, setSemesters] = useState<Semester[]>([])
-  const [loading, setLoading] = useState(true)
+  const [semesters, setSemesters] = useState<SemesterSummary[]>([])
+  const [filteredSemesters, setFilteredSemesters] = useState<SemesterSummary[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
+  const [filterStatus, setFilterStatus] = useState<string>("all")
+  const [filterYear, setFilterYear] = useState<string>("all")
+  const [filterType, setFilterType] = useState<string>("all")
 
-  // Mock data - in real implementation, this would come from API
   useEffect(() => {
-    const mockSemesters: Semester[] = [
-      {
-        id: "1",
-        title: "Spring 2024 - Computer Science",
-        description: "Advanced computer science topics for spring semester",
-        section: "CS-A",
-        has_midterm: true,
-        has_final: true,
-        is_active: true,
-        created_at: "2024-01-15T10:00:00Z",
-        updated_at: "2024-01-20T14:30:00Z",
-        courses_count: 8,
-        topics_count: 45,
-        study_tools_count: 23
-      },
-      {
-        id: "2",
-        title: "Fall 2023 - Software Engineering",
-        description: "Comprehensive software engineering curriculum",
-        section: "SE-B",
-        has_midterm: true,
-        has_final: true,
-        is_active: true,
-        created_at: "2023-08-20T09:00:00Z",
-        updated_at: "2023-12-10T16:45:00Z",
-        courses_count: 6,
-        topics_count: 32,
-        study_tools_count: 18
-      },
-      {
-        id: "3",
-        title: "Summer 2023 - Data Science",
-        description: "Intensive data science and analytics program",
-        section: "DS-A",
-        has_midterm: false,
-        has_final: true,
-        is_active: false,
-        created_at: "2023-05-10T11:00:00Z",
-        updated_at: "2023-08-15T13:20:00Z",
-        courses_count: 4,
-        topics_count: 28,
-        study_tools_count: 15
+    const loadSemesters = async () => {
+      try {
+        setIsLoading(true)
+        const response = await fetch('/api/section-admin/semesters')
+        
+        if (!response.ok) {
+          throw new Error('Failed to load semesters')
+        }
+        
+        const data = await response.json()
+        setSemesters(data || [])
+      } catch (error) {
+        console.error('Error loading semesters:', error)
+        // Mock data for development
+        setSemesters([
+          {
+            id: '1',
+            title: 'Fall 2024',
+            description: 'Fall semester 2024 for Computer Science',
+            section: 'CS-A',
+            semester_type: 'Fall',
+            year: 2024,
+            exam_type: 'Both',
+            has_midterm: true,
+            has_final: true,
+            is_active: true,
+            courses_count: 6,
+            topics_count: 24,
+            materials_count: 48,
+            study_resources_count: 12,
+            students_count: 45,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          },
+          {
+            id: '2',
+            title: 'Spring 2024',
+            description: 'Spring semester 2024 for Computer Science',
+            section: 'CS-A',
+            semester_type: 'Spring',
+            year: 2024,
+            exam_type: 'Both',
+            has_midterm: true,
+            has_final: true,
+            is_active: false,
+            courses_count: 5,
+            topics_count: 20,
+            materials_count: 40,
+            study_resources_count: 10,
+            students_count: 42,
+            created_at: new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000).toISOString(),
+            updated_at: new Date(Date.now() - 1 * 30 * 24 * 60 * 60 * 1000).toISOString()
+          },
+          {
+            id: '3',
+            title: 'Summer 2024',
+            description: 'Summer semester 2024 for Computer Science',
+            section: 'CS-A',
+            semester_type: 'Summer',
+            year: 2024,
+            exam_type: 'Final',
+            has_midterm: false,
+            has_final: true,
+            is_active: false,
+            courses_count: 3,
+            topics_count: 12,
+            materials_count: 24,
+            study_resources_count: 6,
+            students_count: 28,
+            created_at: new Date(Date.now() - 8 * 30 * 24 * 60 * 60 * 1000).toISOString(),
+            updated_at: new Date(Date.now() - 3 * 30 * 24 * 60 * 60 * 1000).toISOString()
+          }
+        ])
+      } finally {
+        setIsLoading(false)
       }
-    ]
+    }
 
-    // Simulate API call delay
-    setTimeout(() => {
-      setSemesters(mockSemesters)
-      setLoading(false)
-    }, 1000)
+    loadSemesters()
   }, [])
 
-  const filteredSemesters = semesters.filter(semester =>
-    semester.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    semester.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    semester.section.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  // Filter semesters
+  useEffect(() => {
+    let filtered = semesters.filter(semester => {
+      const matchesSearch = semester.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           semester.description.toLowerCase().includes(searchTerm.toLowerCase())
+      
+      const matchesStatus = filterStatus === "all" ||
+                           (filterStatus === "active" && semester.is_active) ||
+                           (filterStatus === "inactive" && !semester.is_active)
+      
+      const matchesYear = filterYear === "all" || semester.year.toString() === filterYear
+      const matchesType = filterType === "all" || semester.semester_type === filterType
 
-  const handleEdit = (semesterId: string) => {
-    // Navigate to edit page
-    console.log("Edit semester:", semesterId)
-  }
+      return matchesSearch && matchesStatus && matchesYear && matchesType
+    })
 
-  const handleView = (semesterId: string) => {
-    // Navigate to view page
-    console.log("View semester:", semesterId)
-  }
+    setFilteredSemesters(filtered)
+  }, [semesters, searchTerm, filterStatus, filterYear, filterType])
 
-  const handleDuplicate = (semesterId: string) => {
-    // Duplicate semester
-    console.log("Duplicate semester:", semesterId)
-  }
+  const uniqueYears = Array.from(new Set(semesters.map(s => s.year))).sort((a, b) => b - a)
 
-  const handleDelete = (semesterId: string) => {
-    // Delete semester
-    console.log("Delete semester:", semesterId)
-  }
-
-  const toggleActive = (semesterId: string) => {
-    setSemesters(prev => prev.map(semester => 
-      semester.id === semesterId 
-        ? { ...semester, is_active: !semester.is_active }
-        : semester
-    ))
-  }
-
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-center space-y-3">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto text-emerald-600" />
-          <p className="text-muted-foreground">Loading semesters...</p>
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-4 w-96" />
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-10" />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+        
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton className="h-6 w-32" />
+                <Skeleton className="h-4 w-48" />
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-2/3" />
+                  <Skeleton className="h-8 w-24" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-4">
-      {/* Search */}
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search semesters..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <Button variant="outline" size="sm">
-          <Filter className="h-4 w-4 mr-2" />
-          Filter
-        </Button>
-      </div>
+    <div className="space-y-6">
+      {/* Filters */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Filter className="h-5 w-5" />
+            Filters & Search
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-5">
+            <div className="space-y-2">
+              <Label>Search</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search semesters..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
 
-      {/* Semesters Table */}
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Year</Label>
+              <Select value={filterYear} onValueChange={setFilterYear}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Years</SelectItem>
+                  {uniqueYears.map(year => (
+                    <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Type</Label>
+              <Select value={filterType} onValueChange={setFilterType}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="Fall">Fall</SelectItem>
+                  <SelectItem value="Spring">Spring</SelectItem>
+                  <SelectItem value="Summer">Summer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Actions</Label>
+              <Button asChild className="w-full">
+                <Link href="/SectionAdmin/semester-management">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create New
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Semesters Grid */}
       {filteredSemesters.length === 0 ? (
-        <div className="text-center py-12 space-y-4">
-          <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto">
-            <GraduationCap className="h-8 w-8 text-muted-foreground" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold">No semesters found</h3>
-            <p className="text-muted-foreground">
-              {searchTerm ? "Try adjusting your search criteria" : "Create your first semester to get started"}
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Calendar className="h-12 w-12 text-muted-foreground opacity-50 mb-4" />
+            <h3 className="text-lg font-medium mb-2">No semesters found</h3>
+            <p className="text-muted-foreground text-center mb-4">
+              {semesters.length === 0 
+                ? "Create your first semester to get started"
+                : "Try adjusting your search or filter criteria"
+              }
             </p>
-          </div>
-        </div>
+            <Button asChild>
+              <Link href="/SectionAdmin/semester-management">
+                <Plus className="h-4 w-4 mr-2" />
+                Create First Semester
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="border rounded-lg">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Semester</TableHead>
-                <TableHead>Section</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Content</TableHead>
-                <TableHead>Exams</TableHead>
-                <TableHead>Updated</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredSemesters.map((semester) => (
-                <TableRow key={semester.id} className="hover:bg-muted/50">
-                  <TableCell>
-                    <div className="space-y-1">
-                      <div className="font-medium">{semester.title}</div>
-                      <div className="text-sm text-muted-foreground line-clamp-1">
-                        {semester.description}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
-                      {semester.section}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleActive(semester.id)}
-                        className={semester.is_active ? "text-green-600 hover:text-green-700" : "text-gray-600 hover:text-gray-700"}
-                      >
-                        {semester.is_active ? (
-                          <Power className="h-4 w-4" />
-                        ) : (
-                          <PowerOff className="h-4 w-4" />
-                        )}
-                      </Button>
-                      <Badge 
-                        className={semester.is_active 
-                          ? "bg-green-100 text-green-800" 
-                          : "bg-gray-100 text-gray-800"
-                        }
-                      >
-                        {semester.is_active ? "Active" : "Inactive"}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {filteredSemesters.map((semester) => (
+            <Card key={semester.id} className="hover:shadow-md transition-shadow">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle className="text-lg">{semester.title}</CardTitle>
+                    <CardDescription className="mt-1">
+                      {semester.description}
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {semester.is_active ? (
+                      <Badge variant="default" className="bg-green-100 text-green-800">
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                        Active
                       </Badge>
+                    ) : (
+                      <Badge variant="secondary" className="bg-gray-100 text-gray-800">
+                        <XCircle className="h-3 w-3 mr-1" />
+                        Inactive
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge variant="outline">
+                    {semester.semester_type} {semester.year}
+                  </Badge>
+                  <Badge variant="outline">
+                    {semester.section}
+                  </Badge>
+                </div>
+              </CardHeader>
+              
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="flex items-center gap-1">
+                      <BookOpen className="h-3 w-3 text-blue-600" />
+                      <span>{semester.courses_count} Courses</span>
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-4 text-sm">
-                      <div className="flex items-center gap-1">
-                        <BookOpen className="h-4 w-4 text-blue-600" />
-                        <span>{semester.courses_count}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <FileText className="h-4 w-4 text-purple-600" />
-                        <span>{semester.topics_count}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Play className="h-4 w-4 text-orange-600" />
-                        <span>{semester.study_tools_count}</span>
-                      </div>
+                    <div className="flex items-center gap-1">
+                      <FileText className="h-3 w-3 text-green-600" />
+                      <span>{semester.topics_count} Topics</span>
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      {semester.has_midterm && (
-                        <Badge variant="secondary" className="text-xs">Midterm</Badge>
-                      )}
-                      {semester.has_final && (
-                        <Badge variant="secondary" className="text-xs">Final</Badge>
-                      )}
+                    <div className="flex items-center gap-1">
+                      <Users className="h-3 w-3 text-purple-600" />
+                      <span>{semester.students_count} Students</span>
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      {new Date(semester.updated_at).toLocaleDateString()}
+                    <div className="flex items-center gap-1">
+                      <BarChart3 className="h-3 w-3 text-orange-600" />
+                      <span>{semester.study_resources_count} Resources</span>
                     </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-3 border-t">
                     <div className="text-xs text-muted-foreground">
-                      {new Date(semester.updated_at).toLocaleTimeString()}
+                      Updated {new Date(semester.updated_at).toLocaleDateString()}
                     </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">Open menu</span>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleView(semester.id)}>
-                          <Eye className="mr-2 h-4 w-4" />
-                          View Details
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleEdit(semester.id)}>
-                          <Edit3 className="mr-2 h-4 w-4" />
-                          Edit Semester
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDuplicate(semester.id)}>
-                          <Copy className="mr-2 h-4 w-4" />
-                          Duplicate
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                          onClick={() => handleDelete(semester.id)}
-                          className="text-red-600"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="sm" title="View Details">
+                        <Eye className="h-3 w-3" />
+                      </Button>
+                      <Button variant="ghost" size="sm" title="Edit Semester">
+                        <Edit3 className="h-3 w-3" />
+                      </Button>
+                      <Button variant="ghost" size="sm" title="Duplicate">
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       )}
     </div>

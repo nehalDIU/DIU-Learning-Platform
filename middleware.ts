@@ -84,8 +84,8 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // Check if accessing section admin routes
-  if (pathname.startsWith("/section-admin")) {
+  // Check if accessing section admin routes (both /section-admin and /SectionAdmin)
+  if (pathname.startsWith("/section-admin") || pathname.startsWith("/SectionAdmin")) {
     // For all section admin routes, check authentication
     const token = request.cookies.get("admin_token")?.value
 
@@ -158,6 +158,7 @@ export const config = {
   matcher: [
     '/admin/:path*',
     '/section-admin/:path*',
+    '/SectionAdmin/:path*',
     '/login',
     '/video/:path*',
     '/slide/:path*',

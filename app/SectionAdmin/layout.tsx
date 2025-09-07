@@ -6,6 +6,7 @@ import { SectionAdminHeader } from "@/components/section-admin/section-admin-hea
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider, useAuth } from "@/contexts/auth-context"
 import { Loader2 } from "lucide-react"
+import { Toaster } from "sonner"
 
 function SectionAdminLayoutContent({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -62,6 +63,7 @@ export default function SectionAdminLayout({
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <AuthProvider>
         <SectionAdminLayoutContent>{children}</SectionAdminLayoutContent>
+        <Toaster position="top-right" richColors />
       </AuthProvider>
     </ThemeProvider>
   )
