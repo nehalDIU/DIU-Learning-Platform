@@ -8,8 +8,10 @@ import { Badge } from "@/components/ui/badge"
 import { FunctionalSidebar } from "@/components/functional-sidebar"
 import { EnhancedSidebarWithEnrollment } from "@/components/enhanced-sidebar-with-enrollment"
 import { CourseEnrollmentProvider } from "@/contexts/CourseEnrollmentContext"
+import { SectionProvider, useSectionContext } from "@/contexts/SectionContext"
 import { LazyContentViewer } from "@/components/lazy-content-viewer"
 import { MultiCourseContentManager } from "@/components/multi-course-content-manager"
+import { SectionSelectionModal } from "@/components/section-selection-modal"
 import { Header } from "@/components/header"
 import { useOptimizedContent } from "@/hooks/use-optimized-content"
 import { performanceMonitor, measureAsync } from "@/lib/performance"
@@ -44,6 +46,7 @@ function HomePageContent() {
   const [useMultiCourse, setUseMultiCourse] = useState(true) // Toggle for multi-course mode
   const { toast } = useToast()
   const isMobile = useIsMobile()
+  const { isAuthenticated, isLoading: sectionLoading, selectedSection, userId } = useSectionContext()
 
   const router = useRouter()
 
@@ -443,6 +446,19 @@ function HomePageContent() {
     return null // Prevent hydration mismatch
   }
 
+  // Show section selection modal if user hasn't selected a section
+  if (!sectionLoading && !isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
+        {/* Header */}
+        <Header />
+
+        {/* Section Selection Modal */}
+        <SectionSelectionModal />
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
       {/* Header */}
@@ -599,8 +615,10 @@ function HomePageContent() {
 
 export default function HomePage() {
   return (
-    <CourseEnrollmentProvider>
-      <HomePageContent />
-    </CourseEnrollmentProvider>
+    <SectionProvider>
+      <CourseEnrollmentProvider>
+        <HomePageContent />
+      </CourseEnrollmentProvider>
+    </SectionProvider>
   )
 }

@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frontend Enrollment Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .course-card {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 6px;
+            background: #f9f9f9;
+        }
+        .enrolled {
+            background: #e8f5e8;
+            border-color: #4caf50;
+        }
+        button {
+            padding: 8px 16px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .enroll-btn {
+            background: #2196f3;
+            color: white;
+        }
+        .unenroll-btn {
+            background: #f44336;
+            color: white;
+        }
+        .success {
+            color: #4caf50;
+            font-weight: bold;
+        }
+        .error {
+            color: #f44336;
+            font-weight: bold;
+        }
+        .info {
+            color: #2196f3;
+            font-weight: bold;
+        }
+        .loading {
+            color: #ff9800;
+        }
+        .stats {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎓 Course Enrollment System Test</h1>
+    
+    <div class="container">
+        <h2>📊 Test Status</h2>
+        <div id="status" class="info">Initializing test...</div>
+    </div>
+
+    <div class="container">
+        <h2>👤 Student User</h2>
+        <div id="user-info">
+            <p><strong>User ID:</strong> <span id="user-id">Not set</span></p>
+            <p><strong>Email:</strong> <span id="user-email">Not set</span></p>
+            <button onclick="createTestUser()">Create Test User</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>📚 Available Courses</h2>
+        <button onclick="loadCourses()">Load Courses</button>
+        <div id="courses"></div>
+    </div>
+
+    <div class="container">
+        <h2>💖 Enrolled Courses</h2>
+        <button onclick="loadEnrolled()">Load Enrolled Courses</button>
+        <div id="enrolled"></div>
+    </div>
+
+    <div class="container">
+        <h2>📋 Test Results</h2>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        let currentUserId = null;
+        let courses = [];
+        let enrolledCourses = [];
+
+        async function apiCall(endpoint, options = {}) {
+            try {
+                const response = await fetch(`http://localhost:3001/api${endpoint}`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                
+                const data = await response.json();
+                return { success: response.ok, status: response.status, data };
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        }
+
+        async function createTestUser() {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = '<span class="loading">Creating test user...</span>';
+            
+            const userData = {
+                email: `test_${Date.now()}@diu.edu.bd`,
+                fullName: 'Test Student',
+                batch: '63',
+                section: '63_G'
+            };
+
+            const result = await apiCall('/student-users/create', {
+                method: 'POST',
+                body: JSON.stringify(userData)
+            });
+
+            if (result.success && result.data.userId) {
+                currentUserId = result.data.userId;
+                document.getElementById('user-id').textContent = currentUserId;
+                document.getElementById('user-email').textContent = userData.email;
+                statusDiv.innerHTML = '<span class="success">✅ Test user created successfully!</span>';
+                
+                // Auto-load courses after user creation
+                await loadCourses();
+            } else {
+                statusDiv.innerHTML = `<span class="error">❌ Failed to create user: ${result.error || result.data?.error}</span>`;
+            }
+        }
+
+        async function loadCourses() {
+            const coursesDiv = document.getElementById('courses');
+            coursesDiv.innerHTML = '<div class="loading">Loading courses...</div>';
+            
+            const result = await apiCall('/courses/all');
+            
+            if (result.success) {
+                courses = result.data.slice(0, 5); // Only show first 5 courses
+                coursesDiv.innerHTML = courses.map(course => `
+                    <div class="course-card" id="course-${course.id}">
+                        <h3>${course.course_code}: ${course.title}</h3>
+                        <p><strong>Teacher:</strong> ${course.teacher_name}</p>
+                        <p><strong>Credits:</strong> ${course.credits || 3}</p>
+                        ${course.semester ? `<p><strong>Semester:</strong> ${course.semester.title} (${course.semester.section})</p>` : ''}
+                        <button class="enroll-btn" onclick="enrollInCourse('${course.id}')" id="enroll-btn-${course.id}">
+                            Enroll
+                        </button>
+                        <button class="unenroll-btn" onclick="unenrollFromCourse('${course.id}')" id="unenroll-btn-${course.id}">
+                            Unenroll
+                        </button>
+                    </div>
+                `).join('');
+                updateEnrollmentButtons();
+            } else {
+                coursesDiv.innerHTML = `<div class="error">Failed to load courses: ${result.error || result.data?.error}</div>`;
+            }
+        }
+
+        async function loadEnrolled() {
+            if (!currentUserId) {
+                document.getElementById('enrolled').innerHTML = '<div class="error">Please create a test user first</div>';
+                return;
+            }
+
+            const enrolledDiv = document.getElementById('enrolled');
+            enrolledDiv.innerHTML = '<div class="loading">Loading enrolled courses...</div>';
+            
+            const result = await apiCall(`/courses/enrolled?userId=${currentUserId}`);
+            
+            if (result.success) {
+                enrolledCourses = result.data;
+                enrolledDiv.innerHTML = enrolledCourses.length > 0 
+                    ? enrolledCourses.map(course => `
+                        <div class="course-card enrolled">
+                            <h3>${course.course_code}: ${course.title}</h3>
+                            <p><strong>Teacher:</strong> ${course.teacher_name}</p>
+                            <p><strong>Enrolled:</strong> ${new Date(course.enrollment?.enrollment_date).toLocaleDateString()}</p>
+                            <p><strong>Progress:</strong> ${course.enrollment?.progress_percentage || 0}%</p>
+                            <p><strong>Status:</strong> ${course.enrollment?.status || 'unknown'}</p>
+                        </div>
+                    `).join('')
+                    : '<div class="info">No enrolled courses</div>';
+                updateEnrollmentButtons();
+            } else {
+                enrolledDiv.innerHTML = `<div class="error">Failed to load enrolled courses: ${result.error || result.data?.error}</div>`;
+            }
+        }
+
+        function updateEnrollmentButtons() {
+            const enrolledIds = new Set(enrolledCourses.filter(c => c.enrollment?.status === 'active').map(c => c.id));
+            
+            courses.forEach(course => {
+                const enrollBtn = document.getElementById(`enroll-btn-${course.id}`);
+                const unenrollBtn = document.getElementById(`unenroll-btn-${course.id}`);
+                
+                if (enrollBtn && unenrollBtn) {
+                    if (enrolledIds.has(course.id)) {
+                        enrollBtn.style.display = 'none';
+                        unenrollBtn.style.display = 'inline-block';
+                    } else {
+                        enrollBtn.style.display = 'inline-block';
+                        unenrollBtn.style.display = 'none';
+                    }
+                }
+            });
+        }
+
+        async function enrollInCourse(courseId) {
+            if (!currentUserId) {
+                alert('Please create a test user first');
+                return;
+            }
+
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML += `<div class="info">🔄 Enrolling in course ${courseId}...</div>`;
+            
+            const result = await apiCall('/courses/enroll', {
+                method: 'POST',
+                body: JSON.stringify({ courseId, userId: currentUserId })
+            });
+            
+            if (result.success) {
+                resultsDiv.innerHTML += `<div class="success">✅ Successfully enrolled in course!</div>`;
+                await loadEnrolled(); // Refresh enrolled courses
+            } else {
+                resultsDiv.innerHTML += `<div class="error">❌ Enrollment failed: ${result.error || result.data?.error}</div>`;
+            }
+        }
+
+        async function unenrollFromCourse(courseId) {
+            if (!currentUserId) {
+                alert('Please create a test user first');
+                return;
+            }
+
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML += `<div class="info">🔄 Unenrolling from course ${courseId}...</div>`;
+            
+            const result = await apiCall('/courses/unenroll', {
+                method: 'POST', // Using POST since DELETE had issues
+                body: JSON.stringify({ courseId, userId: currentUserId })
+            });
+            
+            if (result.success) {
+                resultsDiv.innerHTML += `<div class="success">✅ Successfully unenrolled from course!</div>`;
+                await loadEnrolled(); // Refresh enrolled courses
+            } else {
+                resultsDiv.innerHTML += `<div class="error">❌ Unenrollment failed: ${result.error || result.data?.error}</div>`;
+            }
+        }
+
+        // Initialize the test
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('status').innerHTML = '<span class="info">Ready to test! Click "Create Test User" to begin.</span>';
+        });
+    </script>
+</body>
+</html>

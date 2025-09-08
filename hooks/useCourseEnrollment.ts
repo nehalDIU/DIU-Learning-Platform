@@ -50,16 +50,42 @@ export function useCourseEnrollment(userId?: string) {
       console.log('useCourseEnrollment: fetchEnrolledCourses called', { userId })
       setState(prev => ({ ...prev, loading: true, error: null }))
 
-      const enrollmentUserId = userId || 'demo_user_default'
-      const params = new URLSearchParams()
-      params.append('userId', enrollmentUserId)
+      // Only fetch if we have a user ID
+      if (!userId) {
+        console.log('useCourseEnrollment: No user ID available, setting empty state')
+        setState(prev => ({
+          ...prev,
+          enrolledCourses: [],
+          enrolledCourseIds: new Set(),
+          loading: false,
+          error: null
+        }))
+        return
+      }
 
-      console.log('useCourseEnrollment: Fetching enrolled courses for user:', enrollmentUserId)
+      const params = new URLSearchParams()
+      params.append('userId', userId)
+
+      console.log('useCourseEnrollment: Fetching enrolled courses for user:', userId)
       const response = await fetch(`/api/courses/enrolled?${params}`)
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
         console.error('useCourseEnrollment: Failed to fetch enrolled courses', { status: response.status, errorData })
+
+        // Don't throw error for 404 or empty results, just return empty array
+        if (response.status === 404) {
+          console.log('useCourseEnrollment: No enrollments found, setting empty state')
+          setState(prev => ({
+            ...prev,
+            enrolledCourses: [],
+            enrolledCourseIds: new Set(),
+            loading: false,
+            error: null
+          }))
+          return
+        }
+
         throw new Error(errorData.error || `Failed to fetch enrolled courses (${response.status})`)
       }
 
@@ -95,15 +121,28 @@ export function useCourseEnrollment(userId?: string) {
   // Enroll in a course
   const enrollInCourse = useCallback(async (courseId: string) => {
     try {
-      const enrollmentUserId = userId || `demo_user_${Date.now()}`
-      console.log('useCourseEnrollment: enrollInCourse called', { courseId, userId, enrollmentUserId })
+      // Clear any previous errors
+      setState(prev => ({ ...prev, error: null }))
+
+      // Check if user is authenticated
+      if (!userId) {
+        throw new Error('You must be logged in to enroll in courses')
+      }
+
+      console.log('useCourseEnrollment: enrollInCourse called', { courseId, userId })
+
+      // Check if already enrolled to prevent duplicate enrollments
+      if (state.enrolledCourseIds.has(courseId)) {
+        console.log('useCourseEnrollment: User already enrolled in course', courseId)
+        throw new Error('You are already enrolled in this course')
+      }
 
       const response = await fetch('/api/courses/enroll', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ courseId, userId: enrollmentUserId })
+        body: JSON.stringify({ courseId, userId })
       })
 
       if (!response.ok) {
@@ -120,11 +159,13 @@ export function useCourseEnrollment(userId?: string) {
       }
 
       const result = await response.json()
+      console.log('useCourseEnrollment: Enrollment API success:', result)
 
       // Update local state optimistically
       setState(prev => ({
         ...prev,
-        enrolledCourseIds: new Set([...prev.enrolledCourseIds, courseId])
+        enrolledCourseIds: new Set([...prev.enrolledCourseIds, courseId]),
+        error: null
       }))
 
       // Refresh enrolled courses to get complete data
@@ -144,7 +185,7 @@ export function useCourseEnrollment(userId?: string) {
 
       throw new Error(errorMessage)
     }
-  }, [userId, fetchEnrolledCourses])
+  }, [userId, fetchEnrolledCourses, state.enrolledCourseIds])
 
   // Unenroll from a course
   const unenrollFromCourse = useCallback(async (courseId: string) => {

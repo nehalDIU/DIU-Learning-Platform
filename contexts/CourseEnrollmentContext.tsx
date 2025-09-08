@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, ReactNode } from 'react'
 import { useCourseEnrollment } from '@/hooks/useCourseEnrollment'
+import { useStudentUserId } from '@/contexts/SectionContext'
 
 interface Course {
   id: string
@@ -58,7 +59,11 @@ interface CourseEnrollmentProviderProps {
 }
 
 export function CourseEnrollmentProvider({ children, userId }: CourseEnrollmentProviderProps) {
-  const enrollmentData = useCourseEnrollment(userId)
+  // Use section-based user ID if available, otherwise fall back to provided userId
+  const sectionUserId = useStudentUserId()
+  const effectiveUserId = sectionUserId || userId
+
+  const enrollmentData = useCourseEnrollment(effectiveUserId)
 
   return (
     <CourseEnrollmentContext.Provider value={enrollmentData}>

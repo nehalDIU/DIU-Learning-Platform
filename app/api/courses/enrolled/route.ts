@@ -6,34 +6,56 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId')
 
-    // For now, use a demo user ID if not provided
+    // Use provided user ID or return empty array if not provided
     // In a real app, this would come from authentication
-    const enrollmentUserId = userId || 'demo_user_default'
+    if (!userId) {
+      console.log('API: No user ID provided, returning empty enrollments')
+      return NextResponse.json([])
+    }
+
+    const enrollmentUserId = userId
 
     console.log('API: Fetching enrolled courses for user:', enrollmentUserId)
 
-    // First get enrollments
+    // First, get the student's internal ID from their user_id
+    const { data: studentUser, error: studentError } = await supabase
+      .from("student_users")
+      .select("id")
+      .eq("user_id", enrollmentUserId)
+      .single()
+
+    if (studentError || !studentUser) {
+      console.log('API: Student user not found for userId:', enrollmentUserId)
+      return NextResponse.json([])
+    }
+
+    const studentId = studentUser.id
+
+    // Get enrollments using the new table structure
     const { data: enrollments, error } = await supabase
-      .from("user_course_enrollments")
+      .from("student_course_enrollments")
       .select(`
         id,
-        user_id,
+        student_id,
         course_id,
-        status,
-        progress_percentage,
+        enrollment_status,
+        completion_percentage,
         enrollment_date,
         last_accessed,
-        completion_date
+        grade
       `)
-      .eq("user_id", enrollmentUserId)
-      .eq("status", "active")
+      .eq("student_id", studentId)
+      .eq("enrollment_status", "active")
       .order("enrollment_date", { ascending: false })
 
     if (error) {
       console.error("API: Error fetching enrolled courses:", error)
 
       // If table doesn't exist, return empty array instead of error
-      if (error.code === '42P01') { // Table does not exist
+      if (error.code === '42P01' || // PostgreSQL: Table does not exist
+          error.code === 'PGRST205' || // PostgREST: Could not find table in schema cache
+          error.message?.includes('Could not find the table') ||
+          error.message?.includes('relation') && error.message?.includes('does not exist')) {
         console.warn("API: Enrollment table doesn't exist, returning empty array")
         return NextResponse.json([])
       }
@@ -85,11 +107,12 @@ export async function GET(request: NextRequest) {
         ...course,
         enrollment: {
           id: enrollment.id,
-          status: enrollment.status,
-          progress_percentage: enrollment.progress_percentage,
+          status: enrollment.enrollment_status,
+          progress_percentage: enrollment.completion_percentage,
           enrollment_date: enrollment.enrollment_date,
           last_accessed: enrollment.last_accessed,
-          completion_date: enrollment.completion_date
+          completion_date: null, // We don't have this field in the new structure
+          grade: enrollment.grade
         }
       }
     }).filter(Boolean) // Remove null entries

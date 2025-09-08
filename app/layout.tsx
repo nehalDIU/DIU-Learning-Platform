@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { ThemeProvider } from "@/components/theme-provider"
+import { SectionProvider } from "@/contexts/SectionContext"
 import "./globals.css"
 
 export const metadata: Metadata = {
@@ -138,7 +139,9 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen bg-background text-foreground font-sans antialiased">
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange={false}>
-          <div className="relative flex min-h-screen flex-col">{children}</div>
+          <SectionProvider>
+            <div className="relative flex min-h-screen flex-col">{children}</div>
+          </SectionProvider>
         </ThemeProvider>
         <Analytics />
         <SpeedInsights />

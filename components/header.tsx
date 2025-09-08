@@ -2,10 +2,20 @@
 
 import { useState, useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
-import { Bell, Sun, User, Moon, Menu, X } from "lucide-react"
+import { Bell, Sun, User, Moon, Menu, X, Settings, LogOut, Edit, GraduationCap } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Badge } from "@/components/ui/badge"
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
+import { useSectionContext } from "@/contexts/SectionContext"
 
 interface HeaderProps {
   className?: string
@@ -17,6 +27,7 @@ export function Header({ className }: HeaderProps) {
   const { theme, setTheme } = useTheme()
   const router = useRouter()
   const pathname = usePathname()
+  const { studentUser, selectedSection, isAuthenticated, clearSelection } = useSectionContext()
 
   useEffect(() => {
     setMounted(true)
@@ -138,15 +149,114 @@ export function Header({ className }: HeaderProps) {
                 </span>
               </Button>
 
-              {/* Profile Icon */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full hover:bg-accent/80 hover:scale-110 transition-all duration-200"
-                title="Profile"
-              >
-                <User className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              </Button>
+              {/* Profile Dropdown */}
+              {isAuthenticated && studentUser ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="flex items-center gap-2 h-8 sm:h-9 px-2 sm:px-3 rounded-full hover:bg-accent/80 hover:scale-105 transition-all duration-200"
+                    >
+                      <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full overflow-hidden">
+                        {studentUser.profilePhotoUrl ? (
+                          <img
+                            src={studentUser.profilePhotoUrl}
+                            alt={studentUser.fullName || 'User'}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-medium">
+                            {studentUser.fullName ?
+                              studentUser.fullName.split(' ').map(n => n.charAt(0)).join('').toUpperCase().slice(0, 2) :
+                              studentUser.email.charAt(0).toUpperCase()
+                            }
+                          </div>
+                        )}
+                      </div>
+                      <span className="hidden sm:block text-sm font-medium max-w-20 truncate">
+                        {studentUser.fullName || studentUser.email.split('@')[0]}
+                      </span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-64">
+                    <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                    <div className="px-2 py-1.5 space-y-1">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full overflow-hidden">
+                          {studentUser.profilePhotoUrl ? (
+                            <img
+                              src={studentUser.profilePhotoUrl}
+                              alt={studentUser.fullName || 'User'}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-medium">
+                              {studentUser.fullName ?
+                                studentUser.fullName.split(' ').map(n => n.charAt(0)).join('').toUpperCase().slice(0, 2) :
+                                studentUser.email.charAt(0).toUpperCase()
+                              }
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">
+                            {studentUser.fullName || 'Student User'}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {studentUser.email}
+                          </p>
+                          {(studentUser.batch && studentUser.section) && (
+                            <Badge variant="outline" className="text-xs mt-1">
+                              Batch {studentUser.batch} - Section {studentUser.section}
+                            </Badge>
+                          )}
+                          {studentUser.hasSkippedSelection && (
+                            <Badge variant="secondary" className="text-xs mt-1">
+                              Guest User
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => router.push('/profile')}>
+                      <Edit className="mr-2 h-4 w-4" />
+                      Edit Profile
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => router.push('/settings')}>
+                      <Settings className="mr-2 h-4 w-4" />
+                      Settings
+                    </DropdownMenuItem>
+                    {selectedSection && (
+                      <DropdownMenuItem onClick={() => router.push('/my-courses')}>
+                        <GraduationCap className="mr-2 h-4 w-4" />
+                        My Courses
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => {
+                        clearSelection()
+                        router.push('/')
+                      }}
+                      className="text-red-600 focus:text-red-600"
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Sign Out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-full hover:bg-accent/80 hover:scale-110 transition-all duration-200"
+                  title="Profile"
+                  onClick={() => router.push('/')}
+                >
+                  <User className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                </Button>
+              )}
 
               {/* Mobile Menu Toggle */}
               <Button

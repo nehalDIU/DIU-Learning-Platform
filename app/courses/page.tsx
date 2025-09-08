@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react"
 import { Header } from "@/components/header"
 import { CourseEnrollmentProvider, useCourseEnrollmentContext } from "@/contexts/CourseEnrollmentContext"
+import { useSectionContext } from "@/contexts/SectionContext"
 import { ProfessionalCourseCard } from "@/components/ui/professional-course-card"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -48,8 +49,11 @@ function CoursesPageContent() {
     unenrollFromCourse,
     isEnrolledInCourse,
     enrollmentCount,
-    loading: enrollmentLoading
+    loading: enrollmentLoading,
+    refreshEnrolledCourses
   } = useCourseEnrollmentContext()
+
+  const { isAuthenticated, studentUser } = useSectionContext()
 
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
@@ -82,16 +86,31 @@ function CoursesPageContent() {
       setEnrollmentError(null)
       console.log('Courses page: Attempting to enroll in course:', courseId)
 
+      // Check if user is authenticated
+      if (!isAuthenticated) {
+        console.log('User not authenticated:', { isAuthenticated, studentUser })
+        setEnrollmentError('❌ Please create an account first. Go to the main page and enter your email and batch information.')
+        setTimeout(() => setEnrollmentError(null), 8000)
+        return
+      }
+
+      // Check if already enrolled
+      if (isEnrolledInCourse(courseId)) {
+        setEnrollmentError('You are already enrolled in this course')
+        setTimeout(() => setEnrollmentError(null), 3000)
+        return
+      }
+
       const result = await enrollInCourse(courseId)
       console.log('Courses page: Enrollment successful:', result)
 
       // Show success message
-      setEnrollmentError(`Successfully enrolled in course!`)
+      setEnrollmentError(`✅ Successfully enrolled in course!`)
       setTimeout(() => setEnrollmentError(null), 3000)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to enroll in course'
       console.error('Courses page: Failed to enroll in course:', error)
-      setEnrollmentError(errorMessage)
+      setEnrollmentError(`❌ ${errorMessage}`)
       // Show error for 5 seconds
       setTimeout(() => setEnrollmentError(null), 5000)
     }
@@ -167,6 +186,48 @@ function CoursesPageContent() {
             Discover and enroll in courses to enhance your learning journey.
           </p>
         </header>
+
+        {/* Authentication Status */}
+        {!isAuthenticated && (
+          <Alert className="mb-6 border-blue-200 bg-blue-50">
+            <AlertDescription className="text-blue-800">
+              <strong>Account Required:</strong> To enroll in courses, please create an account first.
+              Go to the <a href="/" className="underline font-medium">main page</a> and enter your email and batch information.
+              {process.env.NODE_ENV === 'development' && (
+                <div className="mt-2 text-xs">
+                  Debug: isAuthenticated={String(isAuthenticated)}, studentUser={studentUser ? 'exists' : 'null'}
+                </div>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Show user info when authenticated */}
+        {isAuthenticated && studentUser && (
+          <Alert className="mb-6 border-green-200 bg-green-50">
+            <AlertDescription className="text-green-800">
+              <strong>Welcome, {studentUser.fullName || studentUser.email}!</strong>
+              {studentUser.batch && ` (Batch: ${studentUser.batch})`}
+              {studentUser.section && ` (Section: ${studentUser.section})`}
+              - You can now enroll in courses.
+              {process.env.NODE_ENV === 'development' && (
+                <div className="mt-2 text-xs">
+                  Debug: userId={studentUser.userId}, enrollmentLoading={enrollmentLoading}
+                  {enrollmentCount === 0 && (
+                    <Button
+                      onClick={() => window.location.reload()}
+                      size="sm"
+                      variant="outline"
+                      className="ml-2"
+                    >
+                      Reload Page
+                    </Button>
+                  )}
+                </div>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Error/Success Alert */}
         {enrollmentError && (
@@ -347,6 +408,14 @@ function CoursesPageContent() {
                 <Heart className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
                 <h3 className="text-lg font-medium mb-2">No enrolled courses</h3>
                 <p className="text-muted-foreground">Start by enrolling in some courses from the "All Courses" tab</p>
+                <Button
+                  onClick={refreshEnrolledCourses}
+                  variant="outline"
+                  className="mt-4"
+                  disabled={enrollmentLoading}
+                >
+                  {enrollmentLoading ? "Refreshing..." : "Refresh Enrollments"}
+                </Button>
               </div>
             ) : (
               <div className={cn(

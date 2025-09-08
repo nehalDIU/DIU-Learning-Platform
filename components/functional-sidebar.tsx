@@ -16,6 +16,7 @@ import { ProfessionalTopicTitle } from "@/components/ui/professional-topic-title
 import { useIsMobile } from "@/components/ui/use-mobile"
 import { ShareButton } from "@/components/share-button"
 import { generateShareUrl } from "@/lib/share-utils"
+import { useSectionContext } from "@/contexts/SectionContext"
 import React from "react"
 
 type Semester = Database["public"]["Tables"]["semesters"]["Row"]
@@ -107,6 +108,9 @@ export function FunctionalSidebar({ onContentSelect, selectedContentId }: Functi
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
 
+  // Get section context for filtering
+  const { selectedSection, isAuthenticated } = useSectionContext()
+
   // Expansion states
   const [expandedCourses, setExpandedCourses] = useState(new Set())
   const [expandedStudyTools, setExpandedStudyTools] = useState(new Set())
@@ -122,10 +126,10 @@ export function FunctionalSidebar({ onContentSelect, selectedContentId }: Functi
   const [isScrolling, setIsScrolling] = useState(false)
   const [compactMode, setCompactMode] = useState(false)
 
-  // Fetch semesters on component mount
+  // Fetch semesters on component mount and when section changes
   useEffect(() => {
     fetchSemesters()
-  }, [])
+  }, [isAuthenticated, selectedSection])
 
   // Fetch courses when semester changes
   useEffect(() => {
@@ -145,12 +149,36 @@ export function FunctionalSidebar({ onContentSelect, selectedContentId }: Functi
         return data || []
       })
 
-      setSemesters(data)
+      // Filter semesters based on selected section if user is authenticated
+      let filteredData = data
+      if (isAuthenticated && selectedSection) {
+        filteredData = data.filter(semester =>
+          semester.section === selectedSection.section ||
+          semester.id === selectedSection.id
+        )
+      }
 
-      // Auto-select the first active semester, or fallback to the first semester
-      if (data && data.length > 0) {
-        const activeSemester = data.find(semester => semester.is_active === true)
-        const semesterToSelect = activeSemester || data[0]
+      setSemesters(filteredData)
+
+      // Auto-select the user's section if available, otherwise first active semester
+      if (filteredData && filteredData.length > 0) {
+        let semesterToSelect
+
+        if (isAuthenticated && selectedSection) {
+          // Try to find the exact section match first
+          semesterToSelect = filteredData.find(semester => semester.id === selectedSection.id)
+          if (!semesterToSelect) {
+            // Fallback to section string match
+            semesterToSelect = filteredData.find(semester => semester.section === selectedSection.section)
+          }
+        }
+
+        // If no section-specific match, use first active or first semester
+        if (!semesterToSelect) {
+          const activeSemester = filteredData.find(semester => semester.is_active === true)
+          semesterToSelect = activeSemester || filteredData[0]
+        }
+
         setSelectedSemester(semesterToSelect.id)
       }
     } catch (err) {
@@ -403,6 +431,21 @@ export function FunctionalSidebar({ onContentSelect, selectedContentId }: Functi
         {/* Mobile: Simple header without title */}
         {isMobile ? (
           <div>
+            {/* Section Indicator for Mobile */}
+            {isAuthenticated && selectedSection && (
+              <div className="mb-3 p-2 bg-primary/10 rounded-lg border border-primary/20">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium text-primary">
+                    Your Section: {selectedSection.section}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Showing content for {selectedSection.title}
+                </p>
+              </div>
+            )}
+
             {/* Simplified Semester Selection for Mobile */}
             <Select value={selectedSemester} onValueChange={setSelectedSemester}>
               <SelectTrigger className="h-11 bg-card border-border/50 text-foreground rounded-lg shadow-sm">
@@ -455,6 +498,21 @@ export function FunctionalSidebar({ onContentSelect, selectedContentId }: Functi
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-lg font-semibold text-foreground">Course Content</h3>
             </div>
+
+            {/* Section Indicator for Desktop */}
+            {isAuthenticated && selectedSection && (
+              <div className="mb-4 p-3 bg-primary/10 rounded-lg border border-primary/20">
+                <div className="flex items-center gap-2 mb-1">
+                  <Users className="h-4 w-4 text-primary" />
+                  <span className="font-medium text-primary">
+                    Your Section: {selectedSection.section}
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Showing content for {selectedSection.title}
+                </p>
+              </div>
+            )}
 
             {/* Desktop Semester Selection */}
             <Select value={selectedSemester} onValueChange={setSelectedSemester}>
