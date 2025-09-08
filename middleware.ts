@@ -37,10 +37,10 @@ export function middleware(request: NextRequest) {
   response.headers.set('x-pathname', pathname)
   response.headers.set('x-timestamp', new Date().toISOString())
 
-  // Allow access to login page without authentication
-  if (pathname === "/login") {
+  // Allow access to login and signup pages without authentication
+  if (pathname === "/login" || pathname === "/section-admin-signup") {
     if (process.env.NODE_ENV === 'development') {
-      console.log("Allowing access to login page")
+      console.log("Allowing access to public auth page:", pathname)
     }
     return response
   }
@@ -160,6 +160,7 @@ export const config = {
     '/section-admin/:path*',
     '/SectionAdmin/:path*',
     '/login',
+    '/section-admin-signup',
     '/video/:path*',
     '/slide/:path*',
     '/study-tool/:path*'

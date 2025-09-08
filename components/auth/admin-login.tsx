@@ -31,9 +31,11 @@ export function AdminLogin() {
       if (response.ok) {
         const data = await response.json()
         toast.success(`Welcome back, ${data.user.full_name}!`)
-        
-        // Redirect to semester management
-        router.push('/section-admin/semesters')
+
+        // Determine redirect URL based on user role
+        const redirectUrl = data.user?.role === "section_admin" ? "/SectionAdmin" : "/admin"
+        console.log(`User role: ${data.user?.role}, redirecting to: ${redirectUrl}`)
+        router.push(redirectUrl)
       } else {
         const error = await response.json()
         toast.error(error.error || 'Login failed')

@@ -50,6 +50,7 @@ The header includes the following navigation items:
 
 - **Home**: Main landing page (/)
 - **Notes**: Course notes and materials (/notes)
+- **Courses**: Course browsing and enrollment (/courses)
 - **Contributor**: Contributors and team information (highlighted as primary) (/contributor)
 - **Result**: Academic results (/result)
 
@@ -63,6 +64,7 @@ To modify the navigation items, edit the `navigationItems` array in `components/
 const navigationItems = [
   { name: "Home", href: "/", primary: false },
   { name: "Notes", href: "/notes", primary: false },
+  { name: "Courses", href: "/courses", primary: false },
   { name: "Contributor", href: "/contributor", primary: true },
   { name: "Result", href: "/result", primary: false },
   // Add your custom items here

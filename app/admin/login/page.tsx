@@ -60,7 +60,10 @@ export default function AdminLoginPage() {
       const result = { success: data.success, error: data.error }
 
       if (result.success) {
-        router.push("/admin")
+        // Determine redirect URL based on user role
+        const redirectUrl = data.user?.role === "section_admin" ? "/SectionAdmin" : "/admin"
+        console.log(`User role: ${data.user?.role}, redirecting to: ${redirectUrl}`)
+        router.push(redirectUrl)
       } else {
         setError(result.error || "Login failed")
       }

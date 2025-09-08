@@ -6,7 +6,10 @@ import { Download, Maximize } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { FunctionalSidebar } from "@/components/functional-sidebar"
+import { EnhancedSidebarWithEnrollment } from "@/components/enhanced-sidebar-with-enrollment"
+import { CourseEnrollmentProvider } from "@/contexts/CourseEnrollmentContext"
 import { LazyContentViewer } from "@/components/lazy-content-viewer"
+import { MultiCourseContentManager } from "@/components/multi-course-content-manager"
 import { Header } from "@/components/header"
 import { useOptimizedContent } from "@/hooks/use-optimized-content"
 import { performanceMonitor, measureAsync } from "@/lib/performance"
@@ -35,9 +38,10 @@ interface ContentItem {
   }
 }
 
-export default function HomePage() {
+function HomePageContent() {
   const [selectedContent, setSelectedContent] = useState<ContentItem | null>(null)
   const [mounted, setMounted] = useState(false)
+  const [useMultiCourse, setUseMultiCourse] = useState(true) // Toggle for multi-course mode
   const { toast } = useToast()
   const isMobile = useIsMobile()
 
@@ -281,14 +285,10 @@ export default function HomePage() {
     console.log("Selected content:", content)
     console.log("Content type:", content.type)
     console.log("Content ID:", content.id)
+    console.log("Multi-course mode:", useMultiCourse)
 
     try {
-      // Use optimized content loading with performance tracking
-      await measureAsync('content-load', async () => {
-        await loadContent(content.type, content.id)
-      })
-
-      // Log content access for analytics (both internal and Vercel Analytics)
+      // Log content access for analytics
       await trackContentEvent({
         contentId: content.id,
         contentType: content.type === "document" ? "slide" : content.type as any,
@@ -301,9 +301,20 @@ export default function HomePage() {
         },
       })
 
-      // Set the selected content to display in the viewer
-      console.log("Setting selected content...")
-      setSelectedContent(content)
+      if (useMultiCourse) {
+        // Use multi-course manager
+        const manager = (window as any).multiCourseManager
+        if (manager) {
+          manager.addContent(content)
+        }
+      } else {
+        // Original single-content mode
+        await measureAsync('content-load', async () => {
+          await loadContent(content.type, content.id)
+        })
+
+        setSelectedContent(content)
+      }
 
       // Generate shareable URL and update the browser URL without navigation
       const contentType = content.type === "document" ? "slide" :
@@ -311,12 +322,7 @@ export default function HomePage() {
       const shareUrl = generateSimpleShareUrl(contentType, content.id)
 
       console.log("Generated share URL:", shareUrl)
-      console.log("Updating browser URL...")
-
-      // Update URL without navigation (replace current history entry)
       updateUrlWithoutNavigation(shareUrl)
-
-      console.log("URL updated successfully")
 
       toast({
         title: "Content Loaded",
@@ -334,8 +340,6 @@ export default function HomePage() {
         description: "Failed to load content. Please try again.",
         variant: "destructive",
       })
-    } finally {
-      // Loading state is handled by the optimized content hook
     }
   }
 
@@ -449,9 +453,14 @@ export default function HomePage() {
         {/* Mobile Layout: Content at top, sidebar below */}
         {isMobile ? (
           <>
-            {/* Content Area - Mobile (YouTube-like aspect ratio) */}
-            <div className="flex-none bg-background">
-              {selectedContent ? (
+            {/* Content Area - Mobile */}
+            <div className="flex-none bg-background" style={{ height: useMultiCourse ? '60vh' : 'auto' }}>
+              {useMultiCourse ? (
+                <MultiCourseContentManager
+                  onContentChange={setSelectedContent}
+                  className="h-full"
+                />
+              ) : selectedContent ? (
                 <>
                   {/* Content Viewer - Clean Mobile Design */}
                   <div className="relative w-full" style={{ aspectRatio: '16/9' }}>
@@ -474,9 +483,9 @@ export default function HomePage() {
               )}
             </div>
 
-            {/* Functional Sidebar - Mobile (below content) */}
+            {/* Enhanced Sidebar - Mobile (below content) */}
             <div className="flex-1 bg-card border-t border-border overflow-hidden">
-              <FunctionalSidebar
+              <EnhancedSidebarWithEnrollment
                 onContentSelect={handleContentSelect}
                 selectedContentId={selectedContent?.id}
               />
@@ -487,7 +496,12 @@ export default function HomePage() {
           <>
             {/* Content Area - Desktop */}
             <div className="flex-1 flex flex-col bg-background min-w-0 relative">
-              {selectedContent ? (
+              {useMultiCourse ? (
+                <MultiCourseContentManager
+                  onContentChange={setSelectedContent}
+                  className="h-full"
+                />
+              ) : selectedContent ? (
                 <>
                   {/* Content Viewer - Desktop */}
                   <div className="flex-1 p-0.5 sm:p-1 md:p-3 lg:p-4 xl:p-6 overflow-hidden">
@@ -558,58 +572,17 @@ export default function HomePage() {
                   </div>
                 </>
               ) : (
-                <div className="flex items-center justify-center h-full p-4 sm:p-6 lg:p-8">
-                  <div className="text-center max-w-sm sm:max-w-md lg:max-w-lg animate-slide-up">
-                    {/* Logo */}
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 gradient-primary rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-primary-lg transform hover:scale-105 transition-transform duration-300">
-                      <span className="text-primary-foreground font-bold text-xl sm:text-2xl lg:text-3xl">DIU</span>
-                    </div>
-
-                    {/* Title */}
-                    <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-primary via-primary/90 to-primary/80 bg-clip-text text-transparent mb-4 leading-tight">
-                      Welcome to DIU CSE Learning Platform
-                    </h2>
-
-                    {/* Description */}
-                    <p className="text-muted-foreground mb-6 text-sm sm:text-base lg:text-lg leading-relaxed">
-                      Access your course materials, watch video lectures, and study with interactive content
-                    </p>
-
-                    {/* Features */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 text-xs sm:text-sm">
-                      <div className="flex flex-col items-center p-3 bg-card/50 rounded-lg border border-border/50">
-                        <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-2">
-                          <span className="text-blue-600 dark:text-blue-400 text-sm">📊</span>
-                        </div>
-                        <span className="text-muted-foreground">Slides</span>
-                      </div>
-                      <div className="flex flex-col items-center p-3 bg-card/50 rounded-lg border border-border/50">
-                        <div className="w-8 h-8 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-2">
-                          <span className="text-red-600 dark:text-red-400 text-sm">🎥</span>
-                        </div>
-                        <span className="text-muted-foreground">Videos</span>
-                      </div>
-                      <div className="flex flex-col items-center p-3 bg-card/50 rounded-lg border border-border/50">
-                        <div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-2">
-                          <span className="text-green-600 dark:text-green-400 text-sm">📚</span>
-                        </div>
-                        <span className="text-muted-foreground">Documents</span>
-                      </div>
-                    </div>
-
-                    {/* Desktop hint */}
-                    <div className="text-xs text-muted-foreground/70 mt-4">
-                      Use the sidebar to navigate through semesters and courses
-                    </div>
-                  </div>
-                </div>
+                <MultiCourseContentManager
+                  onContentChange={setSelectedContent}
+                  className="h-full"
+                />
               )}
             </div>
 
-            {/* Sidebar - Desktop (right side) */}
+            {/* Enhanced Sidebar - Desktop (right side) */}
             <div className="relative w-80 lg:w-96 xl:w-[28rem] bg-card/95 backdrop-blur-sm border-l border-border flex-shrink-0">
               <div className="h-full bg-card">
-                <FunctionalSidebar
+                <EnhancedSidebarWithEnrollment
                   onContentSelect={handleContentSelect}
                   selectedContentId={selectedContent?.id}
                 />
@@ -621,5 +594,13 @@ export default function HomePage() {
 
       <Toaster />
     </div>
+  )
+}
+
+export default function HomePage() {
+  return (
+    <CourseEnrollmentProvider>
+      <HomePageContent />
+    </CourseEnrollmentProvider>
   )
 }

@@ -13,6 +13,21 @@ export default function LoginPage() {
   
   const router = useRouter()
 
+  // Helper function to get redirect URL based on user role
+  const getRedirectUrl = (user: any) => {
+    switch (user.role) {
+      case "section_admin":
+        return "/SectionAdmin"
+      case "super_admin":
+        return "/admin" // SuperAdmin uses the same admin dashboard
+      case "admin":
+      case "moderator":
+      case "content_creator":
+      default:
+        return "/admin"
+    }
+  }
+
   // Check if already logged in
   useEffect(() => {
     const checkAuth = async () => {
@@ -24,7 +39,9 @@ export default function LoginPage() {
         if (response.ok) {
           const data = await response.json()
           if (data.success) {
-            router.push("/admin")
+            const redirectUrl = getRedirectUrl(data.user)
+            console.log(`User role: ${data.user.role}, redirecting to: ${redirectUrl}`)
+            router.push(redirectUrl)
           }
         }
       } catch (error) {
@@ -62,14 +79,17 @@ export default function LoginPage() {
       console.log("📊 Login response data:", data)
 
       if (data.success) {
-        console.log("✅ Login successful, redirecting to admin...")
+        console.log("✅ Login successful, determining redirect URL...")
+
+        const redirectUrl = getRedirectUrl(data.user)
+        console.log(`User role: ${data.user.role}, redirecting to: ${redirectUrl}`)
 
         // Force a small delay to ensure cookie is set
         await new Promise(resolve => setTimeout(resolve, 300))
 
         // Use window.location instead of router.push for more reliable redirect
-        console.log("🔄 Redirecting to admin dashboard...")
-        window.location.href = "/admin"
+        console.log(`🔄 Redirecting to ${redirectUrl}...`)
+        window.location.href = redirectUrl
       } else {
         console.log("❌ Login failed:", data.error)
         setError(data.error || "Login failed")
@@ -167,6 +187,19 @@ export default function LoginPage() {
               )}
             </button>
           </form>
+
+          {/* Section Admin Signup Link */}
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600">
+              Need a Section Admin account?{" "}
+              <a
+                href="/section-admin-signup"
+                className="text-blue-600 hover:text-blue-800 font-medium hover:underline"
+              >
+                Create one here
+              </a>
+            </p>
+          </div>
         </div>
 
         <div className="text-center text-sm text-gray-600">
