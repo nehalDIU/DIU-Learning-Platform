@@ -314,80 +314,73 @@ const EnrolledCourseItem = React.memo(({
   return (
     <div className="space-y-2">
       {/* Course Header */}
-      <div className="bg-card rounded-lg border border-border/20 hover:bg-accent/50 transition-colors">
-        <div className="p-3 rounded-lg">
+      <div className="bg-card rounded-xl border border-border/40 hover:border-primary/20 hover:shadow-md transition-all duration-200 group">
+        <div className="p-4 rounded-xl">
           <Button
             variant="ghost"
-            className="w-full justify-start text-left p-0 h-auto hover:bg-transparent"
+            className="w-full justify-start text-left p-0 h-auto hover:bg-transparent group-hover:bg-transparent"
             onClick={() => onToggleCourse(course.id)}
           >
-            <div className="flex items-start gap-3 w-full">
+            <div className="flex items-start gap-4 w-full">
               {/* Chevron Icon */}
-              <div className="flex-shrink-0 mt-1">
+              <div className="flex-shrink-0 mt-2">
                 {expandedCourses.has(course.id) ? (
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  <ChevronDown className="h-5 w-5 text-primary transition-colors" />
                 ) : (
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
                 )}
               </div>
 
               {/* Course Content */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <BookOpen className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-sm text-foreground leading-tight">
-                      {course.title}
-                    </h4>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge variant="secondary" className="text-xs">
-                        {course.course_code}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        <User className="h-3 w-3" />
-                        {course.teacher_name}
-                      </span>
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <BookOpen className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-base text-foreground leading-tight mb-1">
+                        {course.title}
+                      </h4>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="text-xs font-medium">
+                          {course.course_code}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <User className="h-3 w-3" />
+                          {course.teacher_name}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <Badge variant="outline" className="text-xs">
+                  <Badge variant="default" className="text-xs bg-green-100 text-green-800 border-green-200 hover:bg-green-100">
                     <Heart className="h-3 w-3 mr-1" />
                     Enrolled
                   </Badge>
                 </div>
 
-                {/* Progress Bar */}
-                {course.enrollment && (
-                  <div className="mt-2">
-                    <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-                      <span>Progress</span>
-                      <span>{course.enrollment.progress_percentage || 0}%</span>
-                    </div>
-                    <div className="w-full bg-muted rounded-full h-1.5">
-                      <div
-                        className="bg-primary h-1.5 rounded-full transition-all duration-300"
-                        style={{ width: `${course.enrollment.progress_percentage || 0}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-
+                {/* Course Stats */}
                 {courseData && !courseData.isLoading && (
-                  <div className="flex gap-1 mt-2">
-                    <Badge variant="secondary" className="text-xs">
-                      {courseData.topics.length} Topics
-                    </Badge>
-                    <Badge variant="outline" className="text-xs">
-                      {courseData.studyResources.length} Resources
-                    </Badge>
+                  <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border/30">
+                    <div className="flex items-center gap-1">
+                      <BookOpen className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium text-foreground">
+                        {courseData.topics.length} Topics
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <GraduationCap className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium text-foreground">
+                        {courseData.studyResources.length} Resources
+                      </span>
+                    </div>
                   </div>
                 )}
 
                 {courseData?.isLoading && (
-                  <div className="flex items-center gap-2 mt-2">
-                    <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">Loading content...</span>
+                  <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/30">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    <span className="text-sm text-muted-foreground">Loading content...</span>
                   </div>
                 )}
               </div>
@@ -398,33 +391,33 @@ const EnrolledCourseItem = React.memo(({
 
       {/* Course Content */}
       {expandedCourses.has(course.id) && courseData && !courseData.isLoading && (
-        <div className="ml-4 space-y-2">
+        <div className="ml-6 space-y-3 mt-4">
           {/* Study Resources Section */}
           {courseData.studyResources.length > 0 && (
             <div>
               <Button
                 variant="ghost"
-                className="w-full justify-start text-left p-2 h-auto hover:bg-accent rounded-md"
+                className="w-full justify-start text-left p-3 h-auto hover:bg-accent/50 rounded-lg border border-border/20"
                 onClick={() => onToggleStudyTools(course.id)}
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   {expandedStudyTools.has(course.id) ? (
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    <ChevronDown className="h-4 w-4 text-primary" />
                   ) : (
                     <ChevronRight className="h-4 w-4 text-muted-foreground" />
                   )}
-                  <GraduationCap className="h-4 w-4 text-primary" />
-                  <span className="text-sm text-foreground flex-1">
+                  <GraduationCap className="h-5 w-5 text-primary" />
+                  <span className="text-sm font-medium text-foreground flex-1">
                     Study Resources
                   </span>
-                  <span className="text-xs text-muted-foreground">
+                  <Badge variant="secondary" className="text-xs">
                     {courseData.studyResources.length}
-                  </span>
+                  </Badge>
                 </div>
               </Button>
 
               {expandedStudyTools.has(course.id) && (
-                <div className="ml-6 space-y-1">
+                <div className="ml-8 space-y-2 mt-2">
                   {courseData.studyResources.map((resource) => {
                     const isSelected = selectedContentId === resource.id
                     return (
@@ -472,41 +465,41 @@ const EnrolledCourseItem = React.memo(({
             <div>
               <Button
                 variant="ghost"
-                className="w-full justify-start text-left p-2 h-auto hover:bg-accent rounded-md"
+                className="w-full justify-start text-left p-3 h-auto hover:bg-accent/50 rounded-lg border border-border/20"
                 onClick={() => onToggleTopics(course.id)}
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   {expandedTopics.has(course.id) ? (
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    <ChevronDown className="h-4 w-4 text-primary" />
                   ) : (
                     <ChevronRight className="h-4 w-4 text-muted-foreground" />
                   )}
-                  <BookOpen className="h-4 w-4 text-primary" />
-                  <span className="text-sm text-foreground flex-1">
+                  <BookOpen className="h-5 w-5 text-primary" />
+                  <span className="text-sm font-medium text-foreground flex-1">
                     Topics
                   </span>
-                  <span className="text-xs text-muted-foreground">
+                  <Badge variant="secondary" className="text-xs">
                     {courseData.topics.length}
-                  </span>
+                  </Badge>
                 </div>
               </Button>
 
               {expandedTopics.has(course.id) && (
-                <div className="ml-6 space-y-1">
+                <div className="ml-8 space-y-2 mt-2">
                   {courseData.topics.map((topic) => (
                     <div key={topic.id}>
                       <Button
                         variant="ghost"
-                        className="w-full justify-start text-left px-2 py-1.5 h-auto rounded hover:bg-accent/50"
+                        className="w-full justify-start text-left px-3 py-2 h-auto rounded-lg hover:bg-accent/50 border border-border/10"
                         onClick={() => onToggleTopicItem(topic.id)}
                       >
-                        <div className="flex items-center gap-2 w-full">
+                        <div className="flex items-center gap-3 w-full">
                           {expandedTopicItems.has(topic.id) ? (
-                            <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                            <ChevronDown className="h-4 w-4 text-primary" />
                           ) : (
-                            <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
                           )}
-                          <span className="text-xs text-foreground flex-1">
+                          <span className="text-sm font-medium text-foreground flex-1">
                             {topic.title}
                           </span>
                           <Badge variant="outline" className="text-xs">

@@ -79,23 +79,40 @@ function HomePageContent() {
     const loadContentFromUrl = async () => {
       if (!mounted) return
 
-      // Skip if content is already selected (to avoid conflicts)
-      if (selectedContent) return
-
-      // Check for share_path parameter (from middleware rewrite)
+      // Check for share_path parameter (from middleware rewrite) OR direct URL patterns
       const urlParams = new URLSearchParams(window.location.search)
       const sharePath = urlParams.get('share_path')
+      const currentPath = window.location.pathname
 
-      console.log("URL Params:", urlParams.toString())
+      console.log("🔗 Checking for shareable URL...")
       console.log("Share path from params:", sharePath)
-      console.log("Window location:", window.location.href)
-      console.log("Window pathname:", window.location.pathname)
+      console.log("Current pathname:", currentPath)
+
+      // Check if this is a direct shareable URL pattern
+      let detectedSharePath = sharePath
+      if (!detectedSharePath) {
+        // Check for direct URL patterns like /study-tool/id, /slide/id, /video/id
+        const pathMatch = currentPath.match(/^\/(study-tool|slide|video)\/([a-f0-9-]+)$/)
+        if (pathMatch) {
+          const [, type, id] = pathMatch
+          detectedSharePath = `/${type}/${id}`
+          console.log("✅ Detected direct URL pattern:", detectedSharePath)
+        }
+      }
+
+      // Skip if no shareable URL is present
+      if (!detectedSharePath) {
+        console.log("❌ No shareable URL found")
+        return
+      }
+
+      console.log("🚀 Loading content for:", detectedSharePath)
 
       let urlToCheck = window.location.href
-      if (sharePath) {
-        // Use the original shareable path
-        urlToCheck = `${window.location.origin}${sharePath}`
-        console.log("Using share path:", urlToCheck)
+      if (detectedSharePath) {
+        // Use the detected shareable path
+        urlToCheck = `${window.location.origin}${detectedSharePath}`
+        console.log("Using detected share path:", urlToCheck)
       }
 
       console.log("Final URL to check:", urlToCheck)
@@ -121,11 +138,10 @@ function HomePageContent() {
             // Fallback to regular API
             apiEndpoint = `/api/${parsedUrl.type === 'study-tool' ? 'study-tools' : `${parsedUrl.type}s`}/${parsedUrl.id}`
           }
-          console.log("API Endpoint:", apiEndpoint)
+          console.log("📡 API Endpoint:", apiEndpoint)
 
           const response = await fetch(apiEndpoint)
-          console.log("API Response status:", response.status)
-          console.log("API Response headers:", Object.fromEntries(response.headers.entries()))
+          console.log("📡 API Response status:", response.status)
 
           if (response.ok) {
             const contentData = await response.json()
@@ -151,8 +167,9 @@ function HomePageContent() {
               description: contentData.description,
             }
 
-            console.log("Setting content:", content)
+            console.log("✅ Setting content:", content.title)
             setSelectedContent(content)
+            console.log("✅ Content set successfully!")
 
             // Update the browser URL to show the shareable URL (without query params)
             const shareUrl = generateSimpleShareUrl(parsedUrl.type, parsedUrl.id)
@@ -211,7 +228,7 @@ function HomePageContent() {
     // Add a small delay to ensure everything is mounted
     const timer = setTimeout(loadContentFromUrl, 100)
     return () => clearTimeout(timer)
-  }, [mounted, selectedContent, toast, loadContent, setFallbackLoading])
+  }, [mounted, toast, loadContent, setFallbackLoading])
 
   // Initialize with highlighted course syllabus if available (only if no shareable URL)
   useEffect(() => {

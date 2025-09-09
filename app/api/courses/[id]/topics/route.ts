@@ -3,13 +3,13 @@ import { supabase } from "@/lib/supabase"
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    // Use a single optimized query with joins
+    // Use a single optimized query with left joins to include all topics
     const { data, error } = await supabase
       .from("topics")
       .select(`
         *,
-        slides!inner(*),
-        videos!inner(*)
+        slides(*),
+        videos(*)
       `)
       .eq("course_id", params.id)
       .order("order_index", { ascending: true })
