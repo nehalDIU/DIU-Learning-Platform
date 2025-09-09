@@ -5,6 +5,8 @@ import { Header } from "@/components/header"
 import { CourseEnrollmentProvider, useCourseEnrollmentContext } from "@/contexts/CourseEnrollmentContext"
 import { useSectionContext } from "@/contexts/SectionContext"
 import { ProfessionalCourseCard } from "@/components/ui/professional-course-card"
+import { EnrolledCourseDetail } from "@/components/enrolled-course-detail"
+import { useEnrolledCourseExpansion } from "@/hooks/useEnrolledCourseExpansion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -62,6 +64,7 @@ function CoursesPageContent() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [sortBy, setSortBy] = useState<string>("title")
   const [enrollmentError, setEnrollmentError] = useState<string | null>(null)
+  const { toggleCourse, isCourseExpanded } = useEnrolledCourseExpansion()
 
   useEffect(() => {
     fetchCourses()
@@ -418,23 +421,15 @@ function CoursesPageContent() {
                 </Button>
               </div>
             ) : (
-              <div className={cn(
-                viewMode === "grid"
-                  ? "grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-                  : "space-y-4"
-              )}>
+              <div className="space-y-4">
                 {filteredCourses
                   .filter(course => isEnrolledInCourse(course.id))
                   .map((course) => (
-                    <ProfessionalCourseCard
+                    <EnrolledCourseDetail
                       key={course.id}
                       course={course}
-                      isEnrolled={true}
-                      onEnroll={handleEnroll}
-                      onUnenroll={handleUnenroll}
-                      onViewDetails={handleViewDetails}
-                      variant={viewMode === "list" ? "compact" : "default"}
-                      showProgress={true}
+                      isExpanded={isCourseExpanded(course.id)}
+                      onToggle={() => toggleCourse(course.id)}
                     />
                   ))}
               </div>
