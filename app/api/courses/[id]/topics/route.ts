@@ -1,8 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { supabase } from "@/lib/supabase"
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     // Use a single optimized query with left joins to include all topics
     const { data, error } = await supabase
       .from("topics")
@@ -11,7 +12,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         slides(*),
         videos(*)
       `)
-      .eq("course_id", params.id)
+      .eq("course_id", id)
       .order("order_index", { ascending: true })
 
     if (error) {
@@ -31,15 +32,16 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const body = await request.json()
 
     const { data, error } = await supabase
       .from("topics")
       .insert({
         ...body,
-        course_id: params.id,
+        course_id: id,
       })
       .select()
 

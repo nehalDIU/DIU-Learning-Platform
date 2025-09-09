@@ -15,13 +15,15 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
   },
-  // Compression and caching
-  compress: true,
+  // Development optimizations
+  compress: process.env.NODE_ENV === 'production',
   poweredByHeader: false,
   // Fix for Vercel deployment
-  output: 'standalone',
+  output: process.env.NODE_ENV === 'production' ? 'standalone' : undefined,
 
   async headers() {
+    const isDevelopment = process.env.NODE_ENV === 'development'
+
     return [
       {
         source: '/(.*)',
@@ -50,6 +52,11 @@ const nextConfig = {
             key: 'Referrer-Policy',
             value: 'origin-when-cross-origin',
           },
+          // Disable caching in development
+          ...(isDevelopment ? [{
+            key: 'Cache-Control',
+            value: 'no-cache, no-store, must-revalidate',
+          }] : []),
         ],
       },
       {
@@ -57,7 +64,9 @@ const nextConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=300, s-maxage=600',
+            value: isDevelopment
+              ? 'no-cache, no-store, must-revalidate'
+              : 'public, max-age=300, s-maxage=600',
           },
         ],
       },
@@ -66,7 +75,9 @@ const nextConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
+            value: isDevelopment
+              ? 'no-cache, no-store, must-revalidate'
+              : 'public, max-age=31536000, immutable',
           },
         ],
       },

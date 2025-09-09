@@ -5,12 +5,15 @@
   "scripts": {
     "build": "next build",
     "dev": "next dev",
+    "dev:fresh": "npm run clear-cache && npm run dev",
     "lint": "next lint",
     "start": "next start",
     "db:verify": "node scripts/verify-database.js",
     "postbuild": "next-sitemap",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf .next",
+    "clear-cache": "node scripts/clear-dev-cache.js",
+    "dev:debug": "NODE_OPTIONS='--inspect' next dev",
     "vercel-build": "pnpm run build"
   },
   "dependencies": {

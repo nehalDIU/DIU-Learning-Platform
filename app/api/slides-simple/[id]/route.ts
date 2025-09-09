@@ -1,11 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { createClient } from "@/lib/supabase"
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  console.log("Slides API called with ID:", params.id)
-  
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  console.log("Slides API called with ID:", id)
+
   try {
-    const id = params.id
     console.log("Creating Supabase client...")
     
     const supabase = createClient()
