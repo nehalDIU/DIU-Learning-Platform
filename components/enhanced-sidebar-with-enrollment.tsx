@@ -29,18 +29,27 @@ export function EnhancedSidebarWithEnrollment({ onContentSelect, selectedContent
   return (
     <div className="h-full flex flex-col bg-background sidebar-content-container">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-        {/* Tab Navigation */}
-        <div className={`${isMobile ? 'px-3 py-2' : 'px-4 py-3'} border-b border-border bg-card/50`}>
-          <TabsList className="grid w-full grid-cols-2 bg-muted/50">
-            <TabsTrigger value="semesters" className="text-xs sm:text-sm">
-              <Calendar className="h-4 w-4 mr-1" />
-              Semesters
+        {/* Tab Navigation - Enhanced Mobile */}
+        <div className={`${isMobile ? 'px-2 py-2' : 'px-4 py-3'} border-b border-border bg-card/50`}>
+          <TabsList className={`grid w-full grid-cols-2 ${isMobile ? 'h-10 bg-muted/50' : 'bg-muted/50'}`}>
+            <TabsTrigger
+              value="semesters"
+              className={`${isMobile ? 'text-xs px-2 py-1.5 touch-manipulation' : 'text-xs sm:text-sm'} transition-all duration-200`}
+            >
+              <Calendar className={`${isMobile ? 'h-3.5 w-3.5 mr-1' : 'h-4 w-4 mr-1'}`} />
+              <span className={isMobile ? 'font-medium' : ''}>Semesters</span>
             </TabsTrigger>
-            <TabsTrigger value="enrolled" className="text-xs sm:text-sm relative">
-              <Heart className="h-4 w-4 mr-1" />
-              Enrolled
+            <TabsTrigger
+              value="enrolled"
+              className={`${isMobile ? 'text-xs px-2 py-1.5 touch-manipulation' : 'text-xs sm:text-sm'} relative transition-all duration-200`}
+            >
+              <Heart className={`${isMobile ? 'h-3.5 w-3.5 mr-1' : 'h-4 w-4 mr-1'}`} />
+              <span className={isMobile ? 'font-medium' : ''}>Enrolled</span>
               {enrollmentCount > 0 && (
-                <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 text-xs flex items-center justify-center">
+                <Badge
+                  variant="secondary"
+                  className={`ml-1 ${isMobile ? 'h-4 w-4 p-0 text-xs' : 'h-5 w-5 p-0 text-xs'} flex items-center justify-center`}
+                >
                   {enrollmentCount}
                 </Badge>
               )}

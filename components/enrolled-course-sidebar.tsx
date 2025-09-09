@@ -301,19 +301,19 @@ const EnrolledCourseItem = React.memo(({
   return (
     <div className="space-y-2">
       {/* Course Header - Compact Design */}
-      <div className="bg-card/50 hover:bg-card border border-border/30 hover:border-border/60 rounded-lg transition-all duration-200 overflow-hidden">
+      <div className={`bg-card/50 hover:bg-card border border-border/30 hover:border-border/60 rounded-lg transition-all duration-200 overflow-hidden ${isMobile ? 'mobile-course-item' : ''}`}>
         <Button
           variant="ghost"
-          className="w-full justify-start text-left p-0 h-auto hover:bg-transparent"
+          className={`w-full justify-start text-left p-0 h-auto hover:bg-transparent ${isMobile ? 'touch-optimized-button' : ''}`}
           onClick={() => onToggleCourse(course.id)}
         >
-          <div className="flex items-center gap-3 w-full min-w-0 p-4">
+          <div className={`flex items-center gap-3 w-full min-w-0 ${isMobile ? 'p-3' : 'p-4'}`}>
             {/* Chevron Icon */}
             <div className="flex-shrink-0">
               {expandedCourses.has(course.id) ? (
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                <ChevronDown className={`${isMobile ? 'h-4 w-4' : 'h-4 w-4'} text-muted-foreground`} />
               ) : (
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                <ChevronRight className={`${isMobile ? 'h-4 w-4' : 'h-4 w-4'} text-muted-foreground`} />
               )}
             </div>
 

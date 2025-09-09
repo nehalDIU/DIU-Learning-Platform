@@ -441,26 +441,36 @@
     touch-action: manipulation;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
+    transition: all 0.15s ease-out;
+  }
+
+  .touch-optimized-button:active {
+    transform: scale(0.97);
+    background-color: rgba(59, 130, 246, 0.1);
   }
 
   /* Mobile sidebar improvements */
   .mobile-sidebar {
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
   }
 
   /* Mobile course item */
   .mobile-course-item {
     border-radius: 0.75rem;
-    padding: 0.75rem;
     margin-bottom: 0.5rem;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     transition: all 0.2s ease-in-out;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
   }
 
   .mobile-course-item:active {
     transform: scale(0.98);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    background: rgba(59, 130, 246, 0.08);
+    border-color: rgba(59, 130, 246, 0.2);
   }
 
   /* Mobile topic item */
@@ -485,10 +495,34 @@
     min-height: 40px;
     display: flex;
     align-items: center;
+    transition: all 0.15s ease-out;
+    background: rgba(255, 255, 255, 0.01);
+    border: 1px solid rgba(255, 255, 255, 0.03);
   }
 
   .mobile-content-item:active {
     background: rgba(59, 130, 246, 0.08);
+    border-color: rgba(59, 130, 246, 0.15);
+    transform: scale(0.98);
+  }
+
+  /* Enhanced mobile content viewer */
+  .mobile-content-viewer {
+    position: relative;
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(0, 0, 0, 0.98));
+    border-radius: 0 0 1rem 1rem;
+    overflow: hidden;
+  }
+
+  .mobile-content-viewer::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6, #06b6d4);
+    z-index: 10;
   }
 
   /* Mobile typography */
@@ -733,6 +767,31 @@
 
   .mobile-gap-loose {
     gap: 0.75rem;
+  }
+
+  /* Mobile tab enhancements */
+  .mobile-tab-trigger {
+    font-weight: 600;
+    font-size: 0.875rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    transition: all 0.2s ease-out;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+  }
+
+  .mobile-tab-trigger[data-state="active"] {
+    background: rgba(59, 130, 246, 0.15);
+    color: rgb(59, 130, 246);
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+  }
+
+  .mobile-tab-trigger:not([data-state="active"]):active {
+    transform: scale(0.97);
+    background: rgba(59, 130, 246, 0.05);
   }
 
   /* Mobile grid improvements */

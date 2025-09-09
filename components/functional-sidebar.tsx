@@ -677,32 +677,32 @@ const CourseItem = React.memo(
     return (
       <div className={`${isMobile ? 'space-y-2' : 'space-y-2'}`}>
         {/* Course Header - Compact Design */}
-        <div className="bg-card/50 hover:bg-card border border-border/30 hover:border-border/60 rounded-lg transition-all duration-200 overflow-hidden">
+        <div className={`bg-card/50 hover:bg-card border border-border/30 hover:border-border/60 rounded-lg transition-all duration-200 overflow-hidden ${isMobile ? 'mobile-course-item' : ''}`}>
           <Button
             variant="ghost"
-            className="w-full justify-start text-left p-0 h-auto hover:bg-transparent"
+            className={`w-full justify-start text-left p-0 h-auto hover:bg-transparent ${isMobile ? 'touch-optimized-button' : ''}`}
             onClick={() => !isScrolling && onToggleCourse(course.id)}
           >
-            <div className="flex items-center gap-3 w-full min-w-0 p-4">
+            <div className={`flex items-center gap-3 w-full min-w-0 ${isMobile ? 'p-3' : 'p-4'}`}>
               {/* Chevron Icon */}
               <div className="flex-shrink-0">
                 {expandedCourses.has(course.id) ? (
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  <ChevronDown className={`${isMobile ? 'h-4 w-4' : 'h-4 w-4'} text-muted-foreground`} />
                 ) : (
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  <ChevronRight className={`${isMobile ? 'h-4 w-4' : 'h-4 w-4'} text-muted-foreground`} />
                 )}
               </div>
 
               {/* Course Content - Compact Layout */}
               <div className="flex-1 min-w-0 overflow-hidden">
-                <div className="space-y-1">
-                  <h4 className="font-medium text-sm text-foreground leading-tight truncate">
+                <div className={`${isMobile ? 'space-y-0.5' : 'space-y-1'}`}>
+                  <h4 className={`font-medium ${isMobile ? 'text-sm mobile-title' : 'text-sm'} text-foreground leading-tight truncate`}>
                     {course.title}
                   </h4>
-                  <div className="text-xs text-muted-foreground">
+                  <div className={`${isMobile ? 'text-xs mobile-subtitle' : 'text-xs'} text-muted-foreground`}>
                     ({course.course_code})
                   </div>
-                  <div className="text-xs text-muted-foreground truncate">
+                  <div className={`${isMobile ? 'text-xs mobile-subtitle' : 'text-xs'} text-muted-foreground truncate`}>
                     {course.teacher_name}
                   </div>
                 </div>
@@ -710,7 +710,7 @@ const CourseItem = React.memo(
 
               {/* Highlighted Indicator */}
               {course.is_highlighted && (
-                <div className="w-2 h-2 bg-amber-500 rounded-full flex-shrink-0"></div>
+                <div className={`${isMobile ? 'w-1.5 h-1.5' : 'w-2 h-2'} bg-amber-500 rounded-full flex-shrink-0`}></div>
               )}
             </div>
           </Button>
@@ -724,34 +724,34 @@ const CourseItem = React.memo(
               <div>
                 <Button
                   variant="ghost"
-                  className="w-full justify-start text-left p-3 h-auto hover:bg-accent/50 rounded-md"
+                  className={`w-full justify-start text-left ${isMobile ? 'p-2.5 touch-optimized-button' : 'p-3'} h-auto hover:bg-accent/50 rounded-md`}
                   onClick={() => onToggleStudyTools(course.id)}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className={`flex items-center ${isMobile ? 'gap-2.5' : 'gap-3'}`}>
                     {expandedStudyTools.has(course.id) ? (
-                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      <ChevronDown className={`${isMobile ? 'h-3.5 w-3.5' : 'h-4 w-4'} text-muted-foreground`} />
                     ) : (
-                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      <ChevronRight className={`${isMobile ? 'h-3.5 w-3.5' : 'h-4 w-4'} text-muted-foreground`} />
                     )}
-                    <BookOpen className="h-4 w-4 text-primary" />
-                    <span className="text-sm text-foreground flex-1">
+                    <BookOpen className={`${isMobile ? 'h-3.5 w-3.5' : 'h-4 w-4'} text-primary`} />
+                    <span className={`${isMobile ? 'text-sm mobile-content-text' : 'text-sm'} text-foreground flex-1`}>
                       Study Resources
                     </span>
-                    <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
+                    <span className={`${isMobile ? 'text-xs mobile-badge' : 'text-xs'} bg-muted text-muted-foreground px-2 py-1 rounded-full`}>
                       {courseData.studyTools.length}
                     </span>
                   </div>
                 </Button>
 
                 {expandedStudyTools.has(course.id) && (
-                  <div className="ml-4 space-y-1">
+                  <div className={`${isMobile ? 'ml-3 space-y-0.5' : 'ml-4 space-y-1'}`}>
                     {courseData.studyTools.map((tool: StudyTool) => {
                       const isSelected = selectedContentId === tool.id
                       return (
                         <Button
                           key={tool.id}
                           variant="ghost"
-                          className={`w-full justify-start text-left p-2 h-auto rounded-md transition-colors ${
+                          className={`w-full justify-start text-left ${isMobile ? 'p-2 mobile-content-item touch-optimized-button' : 'p-2'} h-auto rounded-md transition-colors ${
                             isSelected
                               ? "bg-primary/10 text-primary"
                               : "hover:bg-accent/30"
@@ -766,9 +766,9 @@ const CourseItem = React.memo(
                           }}
                           disabled={tool.type !== "syllabus" && !tool.content_url}
                         >
-                          <div className="flex items-center gap-3 w-full">
+                          <div className={`flex items-center ${isMobile ? 'gap-2.5' : 'gap-3'} w-full`}>
                             {getStudyToolIcon(tool.type)}
-                            <span className={`text-sm truncate flex-1 ${
+                            <span className={`${isMobile ? 'text-sm mobile-content-text' : 'text-sm'} truncate flex-1 ${
                               isSelected ? "text-foreground font-medium" : "text-muted-foreground"
                             }`}>
                               {tool.title}
@@ -787,55 +787,55 @@ const CourseItem = React.memo(
               <div className="min-w-0">
                 <Button
                   variant="ghost"
-                  className="w-full justify-start text-left p-3 h-auto hover:bg-accent/50 rounded-md touch-manipulation"
+                  className={`w-full justify-start text-left ${isMobile ? 'p-2.5 touch-optimized-button' : 'p-3'} h-auto hover:bg-accent/50 rounded-md touch-manipulation`}
                   onClick={() => !isScrolling && onToggleTopics(course.id)}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className={`flex items-center ${isMobile ? 'gap-2.5' : 'gap-3'}`}>
                     {expandedTopics.has(course.id) ? (
-                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      <ChevronDown className={`${isMobile ? 'h-3.5 w-3.5' : 'h-4 w-4'} text-muted-foreground`} />
                     ) : (
-                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      <ChevronRight className={`${isMobile ? 'h-3.5 w-3.5' : 'h-4 w-4'} text-muted-foreground`} />
                     )}
-                    <FileText className="h-4 w-4 text-primary" />
-                    <span className="text-sm text-foreground flex-1">Topics</span>
-                    <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
+                    <FileText className={`${isMobile ? 'h-3.5 w-3.5' : 'h-4 w-4'} text-primary`} />
+                    <span className={`${isMobile ? 'text-sm mobile-content-text' : 'text-sm'} text-foreground flex-1`}>Topics</span>
+                    <span className={`${isMobile ? 'text-xs mobile-badge' : 'text-xs'} bg-muted text-muted-foreground px-2 py-1 rounded-full`}>
                       {courseData.topics.length}
                     </span>
                   </div>
                 </Button>
 
                 {expandedTopics.has(course.id) && (
-                  <div className="ml-4 space-y-1 min-w-0">
+                  <div className={`${isMobile ? 'ml-3 space-y-0.5' : 'ml-4 space-y-1'} min-w-0`}>
                     {courseData.topics.map((topic: Topic, index: number) => {
                       const topicSlides = courseData.slides[topic.id] || []
                       const topicVideos = courseData.videos[topic.id] || []
 
                       return (
-                        <div key={topic.id}>
+                        <div key={topic.id} className={isMobile ? 'mobile-topic-item' : ''}>
                           <Button
                             variant="ghost"
-                            className="w-full justify-start text-left p-3 h-auto min-w-0 hover:bg-accent/50 rounded-md touch-manipulation"
+                            className={`w-full justify-start text-left ${isMobile ? 'p-2.5 touch-optimized-button mobile-topic-item' : 'p-3'} h-auto min-w-0 hover:bg-accent/50 rounded-md touch-manipulation`}
                             onClick={() => !isScrolling && onToggleTopicItem(topic.id)}
                           >
                             <div className="flex items-center justify-between w-full min-w-0">
-                              <div className="flex items-center gap-3 flex-1 min-w-0">
+                              <div className={`flex items-center ${isMobile ? 'gap-2.5' : 'gap-3'} flex-1 min-w-0`}>
                                 {expandedTopicItems.has(topic.id) ? (
-                                  <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                  <ChevronDown className={`${isMobile ? 'h-3.5 w-3.5' : 'h-4 w-4'} text-muted-foreground flex-shrink-0`} />
                                 ) : (
-                                  <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                  <ChevronRight className={`${isMobile ? 'h-3.5 w-3.5' : 'h-4 w-4'} text-muted-foreground flex-shrink-0`} />
                                 )}
-                                <span className="text-sm text-foreground truncate">
+                                <span className={`${isMobile ? 'text-sm mobile-content-text' : 'text-sm'} text-foreground truncate`}>
                                   {topic.title}
                                 </span>
                               </div>
-                              <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full flex-shrink-0">
+                              <span className={`${isMobile ? 'text-xs mobile-badge' : 'text-xs'} bg-muted text-muted-foreground px-2 py-1 rounded-full flex-shrink-0`}>
                                 #{index}
                               </span>
                             </div>
                           </Button>
 
                           {expandedTopicItems.has(topic.id) && (
-                            <div className="ml-6 space-y-1 mt-2">
+                            <div className={`${isMobile ? 'ml-4 space-y-0.5 mt-1.5' : 'ml-6 space-y-1 mt-2'}`}>
                               {/* Videos */}
                               {topicVideos.map((video: Video) => {
                                 const isSelected = selectedContentId === video.id
@@ -843,7 +843,7 @@ const CourseItem = React.memo(
                                   <Button
                                     key={video.id}
                                     variant="ghost"
-                                    className={`w-full justify-start text-left p-2 h-auto rounded-md transition-colors touch-manipulation ${
+                                    className={`w-full justify-start text-left ${isMobile ? 'p-2 mobile-content-item touch-optimized-button' : 'p-2'} h-auto rounded-md transition-colors touch-manipulation ${
                                       isSelected
                                         ? "bg-primary/10 text-primary"
                                         : "hover:bg-accent/30 text-muted-foreground hover:text-foreground"
@@ -859,9 +859,9 @@ const CourseItem = React.memo(
                                       )
                                     }
                                   >
-                                    <div className="flex items-center gap-3 w-full">
-                                      <Play className={`h-3 w-3 flex-shrink-0 ${isSelected ? "text-red-500" : "text-red-400"}`} />
-                                      <span className={`text-sm truncate ${
+                                    <div className={`flex items-center ${isMobile ? 'gap-2.5' : 'gap-3'} w-full`}>
+                                      <Play className={`${isMobile ? 'h-3 w-3' : 'h-3 w-3'} flex-shrink-0 ${isSelected ? "text-red-500" : "text-red-400"}`} />
+                                      <span className={`${isMobile ? 'text-sm mobile-content-text' : 'text-sm'} truncate ${
                                         isSelected ? "font-medium" : ""
                                       }`}>
                                         {video.title}
@@ -878,7 +878,7 @@ const CourseItem = React.memo(
                                   <Button
                                     key={slide.id}
                                     variant="ghost"
-                                    className={`w-full justify-start text-left p-2 h-auto rounded-md transition-colors touch-manipulation ${
+                                    className={`w-full justify-start text-left ${isMobile ? 'p-2 mobile-content-item touch-optimized-button' : 'p-2'} h-auto rounded-md transition-colors touch-manipulation ${
                                       isSelected
                                         ? "bg-primary/10 text-primary"
                                         : "hover:bg-accent/30 text-muted-foreground hover:text-foreground"
@@ -894,9 +894,9 @@ const CourseItem = React.memo(
                                       )
                                     }
                                   >
-                                    <div className="flex items-center gap-3 w-full">
-                                      <FileText className={`h-3 w-3 flex-shrink-0 ${isSelected ? "text-blue-500" : "text-blue-400"}`} />
-                                      <span className={`text-sm truncate ${
+                                    <div className={`flex items-center ${isMobile ? 'gap-2.5' : 'gap-3'} w-full`}>
+                                      <FileText className={`${isMobile ? 'h-3 w-3' : 'h-3 w-3'} flex-shrink-0 ${isSelected ? "text-blue-500" : "text-blue-400"}`} />
+                                      <span className={`${isMobile ? 'text-sm mobile-content-text' : 'text-sm'} truncate ${
                                         isSelected ? "font-medium" : ""
                                       }`}>
                                         {slide.title}
