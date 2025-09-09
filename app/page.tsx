@@ -613,8 +613,8 @@ function HomePageContent() {
             </div>
 
             {/* Enhanced Sidebar - Desktop (right side) */}
-            <div className="relative w-80 lg:w-96 xl:w-[28rem] bg-card/95 backdrop-blur-sm border-l border-border flex-shrink-0">
-              <div className="h-full bg-card">
+            <div className="relative w-80 lg:w-96 xl:w-[28rem] bg-card/95 backdrop-blur-sm border-l border-border flex-shrink-0 overflow-hidden">
+              <div className="h-full bg-card overflow-hidden">
                 <EnhancedSidebarWithEnrollment
                   onContentSelect={handleContentSelect}
                   selectedContentId={selectedContent?.id}

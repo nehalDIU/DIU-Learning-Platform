@@ -27,7 +27,7 @@ export function EnhancedSidebarWithEnrollment({ onContentSelect, selectedContent
   const [activeTab, setActiveTab] = useState("semesters")
 
   return (
-    <div className="h-full flex flex-col bg-background">
+    <div className="h-full flex flex-col bg-background sidebar-content-container">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
         {/* Tab Navigation */}
         <div className={`${isMobile ? 'px-3 py-2' : 'px-4 py-3'} border-b border-border bg-card/50`}>
@@ -51,7 +51,7 @@ export function EnhancedSidebarWithEnrollment({ onContentSelect, selectedContent
         {/* Tab Content */}
         <div className="flex-1 overflow-hidden">
           {/* Semesters Tab - Original Sidebar */}
-          <TabsContent value="semesters" className="h-full m-0 data-[state=active]:flex data-[state=active]:flex-col">
+          <TabsContent value="semesters" className="h-full m-0 data-[state=active]:flex data-[state=active]:flex-col sidebar-content-container">
             <FunctionalSidebar
               onContentSelect={onContentSelect}
               selectedContentId={selectedContentId}
@@ -59,7 +59,7 @@ export function EnhancedSidebarWithEnrollment({ onContentSelect, selectedContent
           </TabsContent>
 
           {/* Enrolled Courses Tab */}
-          <TabsContent value="enrolled" className="h-full m-0 data-[state=active]:flex data-[state=active]:flex-col">
+          <TabsContent value="enrolled" className="h-full m-0 data-[state=active]:flex data-[state=active]:flex-col sidebar-content-container">
             <EnrolledCourseSidebar
               onContentSelect={onContentSelect}
               selectedContentId={selectedContentId}

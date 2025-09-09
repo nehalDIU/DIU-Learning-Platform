@@ -236,19 +236,6 @@ export function EnrolledCourseSidebar({ onContentSelect, selectedContentId }: En
 
   return (
     <div className="h-full flex flex-col">
-      <div className={`${isMobile ? 'px-3 py-2' : 'px-4 py-3'} border-b border-border bg-card/50`}>
-        <div className="flex items-center gap-2">
-          <Heart className="h-4 w-4 text-primary" />
-          <h3 className="font-medium text-sm">My Courses</h3>
-          <Badge variant="secondary" className="text-xs">
-            {enrolledCourses.length} enrolled
-          </Badge>
-        </div>
-        <p className="text-xs text-muted-foreground mt-1">
-          Access your enrolled course content
-        </p>
-      </div>
-
       <ScrollArea className="flex-1">
         <div className={`${isMobile ? 'p-3 space-y-2' : 'p-4 space-y-2'}`}>
           {enrolledCourses.map((course) => (
@@ -313,80 +300,45 @@ const EnrolledCourseItem = React.memo(({
 }) => {
   return (
     <div className="space-y-2">
-      {/* Course Header */}
-      <div className="bg-card rounded-xl border border-border/40 hover:border-primary/20 hover:shadow-md transition-all duration-200 group">
-        <div className="p-4 rounded-xl">
-          <Button
-            variant="ghost"
-            className="w-full justify-start text-left p-0 h-auto hover:bg-transparent group-hover:bg-transparent"
-            onClick={() => onToggleCourse(course.id)}
-          >
-            <div className="flex items-start gap-4 w-full">
-              {/* Chevron Icon */}
-              <div className="flex-shrink-0 mt-2">
-                {expandedCourses.has(course.id) ? (
-                  <ChevronDown className="h-5 w-5 text-primary transition-colors" />
-                ) : (
-                  <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                )}
-              </div>
+      {/* Course Header - Compact Design */}
+      <div className="bg-card/50 hover:bg-card border border-border/30 hover:border-border/60 rounded-lg transition-all duration-200 overflow-hidden">
+        <Button
+          variant="ghost"
+          className="w-full justify-start text-left p-0 h-auto hover:bg-transparent"
+          onClick={() => onToggleCourse(course.id)}
+        >
+          <div className="flex items-center gap-3 w-full min-w-0 p-4">
+            {/* Chevron Icon */}
+            <div className="flex-shrink-0">
+              {expandedCourses.has(course.id) ? (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              )}
+            </div>
 
-              {/* Course Content */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <BookOpen className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-base text-foreground leading-tight mb-1">
-                        {course.title}
-                      </h4>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="text-xs font-medium">
-                          {course.course_code}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground flex items-center gap-1">
-                          <User className="h-3 w-3" />
-                          {course.teacher_name}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <Badge variant="default" className="text-xs bg-green-100 text-green-800 border-green-200 hover:bg-green-100">
-                    <Heart className="h-3 w-3 mr-1" />
-                    Enrolled
-                  </Badge>
+            {/* Course Content - Compact Layout */}
+            <div className="flex-1 min-w-0 overflow-hidden">
+              <div className="space-y-1">
+                <h4 className="font-medium text-sm text-foreground leading-tight truncate">
+                  {course.title}
+                </h4>
+                <div className="text-xs text-muted-foreground">
+                  ({course.course_code})
                 </div>
-
-                {/* Course Stats */}
-                {courseData && !courseData.isLoading && (
-                  <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border/30">
-                    <div className="flex items-center gap-1">
-                      <BookOpen className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-medium text-foreground">
-                        {courseData.topics.length} Topics
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <GraduationCap className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-medium text-foreground">
-                        {courseData.studyResources.length} Resources
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {courseData?.isLoading && (
-                  <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/30">
-                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                    <span className="text-sm text-muted-foreground">Loading content...</span>
-                  </div>
-                )}
+                <div className="text-xs text-muted-foreground truncate">
+                  {course.teacher_name}
+                </div>
               </div>
             </div>
-          </Button>
-        </div>
+
+            {/* Enrolled Badge */}
+            <Badge variant="default" className="text-xs bg-green-100 text-green-800 border-green-200 hover:bg-green-100 flex-shrink-0">
+              <Heart className="h-3 w-3 mr-1" />
+              Enrolled
+            </Badge>
+          </div>
+        </Button>
       </div>
 
       {/* Course Content */}
@@ -465,46 +417,48 @@ const EnrolledCourseItem = React.memo(({
             <div>
               <Button
                 variant="ghost"
-                className="w-full justify-start text-left p-3 h-auto hover:bg-accent/50 rounded-lg border border-border/20"
+                className="w-full justify-start text-left p-3 h-auto hover:bg-accent/50 rounded-md"
                 onClick={() => onToggleTopics(course.id)}
               >
                 <div className="flex items-center gap-3">
                   {expandedTopics.has(course.id) ? (
-                    <ChevronDown className="h-4 w-4 text-primary" />
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
                   ) : (
                     <ChevronRight className="h-4 w-4 text-muted-foreground" />
                   )}
-                  <BookOpen className="h-5 w-5 text-primary" />
-                  <span className="text-sm font-medium text-foreground flex-1">
+                  <BookOpen className="h-4 w-4 text-primary" />
+                  <span className="text-sm text-foreground flex-1">
                     Topics
                   </span>
-                  <Badge variant="secondary" className="text-xs">
+                  <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
                     {courseData.topics.length}
-                  </Badge>
+                  </span>
                 </div>
               </Button>
 
               {expandedTopics.has(course.id) && (
-                <div className="ml-8 space-y-2 mt-2">
-                  {courseData.topics.map((topic) => (
+                <div className="ml-4 space-y-1 mt-2">
+                  {courseData.topics.map((topic, index) => (
                     <div key={topic.id}>
                       <Button
                         variant="ghost"
-                        className="w-full justify-start text-left px-3 py-2 h-auto rounded-lg hover:bg-accent/50 border border-border/10"
+                        className="w-full justify-start text-left p-3 h-auto rounded-md hover:bg-accent/50"
                         onClick={() => onToggleTopicItem(topic.id)}
                       >
-                        <div className="flex items-center gap-3 w-full">
-                          {expandedTopicItems.has(topic.id) ? (
-                            <ChevronDown className="h-4 w-4 text-primary" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                          )}
-                          <span className="text-sm font-medium text-foreground flex-1">
-                            {topic.title}
+                        <div className="flex items-center justify-between w-full min-w-0">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            {expandedTopicItems.has(topic.id) ? (
+                              <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            )}
+                            <span className="text-sm text-foreground truncate">
+                              {topic.title}
+                            </span>
+                          </div>
+                          <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full flex-shrink-0">
+                            #{index}
                           </span>
-                          <Badge variant="outline" className="text-xs">
-                            #{topic.order_index}
-                          </Badge>
                         </div>
                       </Button>
 

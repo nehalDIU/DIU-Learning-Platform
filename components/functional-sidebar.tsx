@@ -495,10 +495,6 @@ export function FunctionalSidebar({ onContentSelect, selectedContentId }: Functi
         ) : (
           /* Desktop Header */
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-semibold text-foreground">Course Content</h3>
-            </div>
-
             {/* Section Indicator for Desktop */}
             {isAuthenticated && selectedSection && (
               <div className="mb-4 p-3 bg-primary/10 rounded-lg border border-primary/20">
@@ -680,96 +676,44 @@ const CourseItem = React.memo(
   }) => {
     return (
       <div className={`${isMobile ? 'space-y-2' : 'space-y-2'}`}>
-        {/* Course Header - Simple Mobile Design */}
-        <div className={`${isMobile ? 'bg-card rounded-lg border border-border/20' : 'bg-card rounded-lg hover:bg-accent/50 transition-colors border border-border'}`}>
-          <div className={`p-3 rounded-lg ${course.is_highlighted ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800' : ''}`}>
+        {/* Course Header - Compact Design */}
+        <div className="bg-card/50 hover:bg-card border border-border/30 hover:border-border/60 rounded-lg transition-all duration-200 overflow-hidden">
           <Button
             variant="ghost"
-            className={`w-full justify-start text-left p-0 h-auto hover:bg-transparent ${isMobile ? 'min-h-[48px]' : ''}`}
+            className="w-full justify-start text-left p-0 h-auto hover:bg-transparent"
             onClick={() => !isScrolling && onToggleCourse(course.id)}
           >
-            <div className="flex items-start gap-3 w-full">
+            <div className="flex items-center gap-3 w-full min-w-0 p-4">
               {/* Chevron Icon */}
-              <div className="flex-shrink-0 mt-1">
+              <div className="flex-shrink-0">
                 {expandedCourses.has(course.id) ? (
-                  <ChevronDown className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'} text-muted-foreground`} />
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
                 ) : (
-                  <ChevronRight className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'} text-muted-foreground`} />
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 )}
               </div>
 
-              {/* Course Content */}
-              <div className="flex-1 min-w-0">
-                {isMobile ? (
-                  /* Mobile Layout - Simple and Clean */
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-medium text-sm text-foreground leading-tight flex-1">
-                        {course.title}
-                      </h4>
-                      {course.is_highlighted && (
-                        <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs text-muted-foreground font-medium">
-                        {course.course_code}
-                      </span>
-                      <span className="text-xs text-muted-foreground/60">•</span>
-                      <span className="text-xs text-muted-foreground truncate">
-                        {course.teacher_name}
-                      </span>
-                    </div>
+              {/* Course Content - Compact Layout */}
+              <div className="flex-1 min-w-0 overflow-hidden">
+                <div className="space-y-1">
+                  <h4 className="font-medium text-sm text-foreground leading-tight truncate">
+                    {course.title}
+                  </h4>
+                  <div className="text-xs text-muted-foreground">
+                    ({course.course_code})
                   </div>
-                ) : (
-                  /* Desktop Layout */
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <div className="font-medium text-sm text-foreground truncate flex-1">
-                        {course.title}
-                      </div>
-                      {course.is_highlighted && (
-                        <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
-                      )}
-                    </div>
-                    {!compactMode && (
-                      <>
-                        <div className="text-xs text-muted-foreground">({course.course_code})</div>
-                        <div className="text-xs text-muted-foreground">{course.teacher_name}</div>
-                      </>
-                    )}
-
-                    {courseData && !courseData.isLoading && !compactMode && (
-                      <div className="flex gap-1 mt-2">
-                        <Badge variant="secondary" className="text-xs bg-secondary text-secondary-foreground">
-                          {courseData.topics.length} Topics
-                        </Badge>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground ml-2">
-                          {Object.values(courseData.videos).flat().length > 0 && (
-                            <span>{Object.values(courseData.videos).flat().length} Video{Object.values(courseData.videos).flat().length > 1 ? 's' : ''}</span>
-                          )}
-                          {Object.values(courseData.videos).flat().length > 0 && Object.values(courseData.slides).flat().length > 0 && (
-                            <span className="text-muted-foreground/60">•</span>
-                          )}
-                          {Object.values(courseData.slides).flat().length > 0 && (
-                            <span>{Object.values(courseData.slides).flat().length} Slide{Object.values(courseData.slides).flat().length > 1 ? 's' : ''}</span>
-                          )}
-                        </div>
-                      </div>
-                    )}
+                  <div className="text-xs text-muted-foreground truncate">
+                    {course.teacher_name}
                   </div>
-                )}
-
-                {courseData?.isLoading && (
-                  <div className="flex items-center gap-2 mt-2">
-                    <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">Loading content...</span>
-                  </div>
-                )}
+                </div>
               </div>
+
+              {/* Highlighted Indicator */}
+              {course.is_highlighted && (
+                <div className="w-2 h-2 bg-amber-500 rounded-full flex-shrink-0"></div>
+              )}
             </div>
           </Button>
-          </div>
         </div>
 
         {/* Course Content */}
@@ -780,10 +724,10 @@ const CourseItem = React.memo(
               <div>
                 <Button
                   variant="ghost"
-                  className={`w-full justify-start text-left ${isMobile ? 'p-2 h-auto hover:bg-accent/30 rounded-md' : 'p-2 h-auto hover:bg-accent rounded-md'}`}
+                  className="w-full justify-start text-left p-3 h-auto hover:bg-accent/50 rounded-md"
                   onClick={() => onToggleStudyTools(course.id)}
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     {expandedStudyTools.has(course.id) ? (
                       <ChevronDown className="h-4 w-4 text-muted-foreground" />
                     ) : (
@@ -793,24 +737,24 @@ const CourseItem = React.memo(
                     <span className="text-sm text-foreground flex-1">
                       Study Resources
                     </span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
                       {courseData.studyTools.length}
                     </span>
                   </div>
                 </Button>
 
                 {expandedStudyTools.has(course.id) && (
-                  <div className="ml-6 space-y-1">
+                  <div className="ml-4 space-y-1">
                     {courseData.studyTools.map((tool: StudyTool) => {
                       const isSelected = selectedContentId === tool.id
                       return (
                         <Button
                           key={tool.id}
                           variant="ghost"
-                          className={`w-full justify-start text-left px-2 py-1.5 h-auto rounded transition-colors ${
+                          className={`w-full justify-start text-left p-2 h-auto rounded-md transition-colors ${
                             isSelected
                               ? "bg-primary/10 text-primary"
-                              : "hover:bg-accent/50"
+                              : "hover:bg-accent/30"
                           }`}
                           onClick={() => {
                             if (tool.type === "syllabus") {
@@ -822,16 +766,13 @@ const CourseItem = React.memo(
                           }}
                           disabled={tool.type !== "syllabus" && !tool.content_url}
                         >
-                          <div className="flex items-center gap-2 w-full">
+                          <div className="flex items-center gap-3 w-full">
                             {getStudyToolIcon(tool.type)}
-                            <span className={`text-xs truncate flex-1 ${
+                            <span className={`text-sm truncate flex-1 ${
                               isSelected ? "text-foreground font-medium" : "text-muted-foreground"
                             }`}>
                               {tool.title}
                             </span>
-                            {isSelected && (
-                              <div className="w-1.5 h-1.5 bg-primary rounded-full flex-shrink-0"></div>
-                            )}
                           </div>
                         </Button>
                       )
@@ -846,25 +787,25 @@ const CourseItem = React.memo(
               <div className="min-w-0">
                 <Button
                   variant="ghost"
-                  className={`w-full justify-start text-left ${isMobile ? 'p-2 h-auto hover:bg-accent/30 rounded-md' : 'p-2 h-auto hover:bg-accent rounded-md'} touch-manipulation`}
+                  className="w-full justify-start text-left p-3 h-auto hover:bg-accent/50 rounded-md touch-manipulation"
                   onClick={() => !isScrolling && onToggleTopics(course.id)}
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     {expandedTopics.has(course.id) ? (
                       <ChevronDown className="h-4 w-4 text-muted-foreground" />
                     ) : (
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     )}
-                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <FileText className="h-4 w-4 text-primary" />
                     <span className="text-sm text-foreground flex-1">Topics</span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
                       {courseData.topics.length}
                     </span>
                   </div>
                 </Button>
 
                 {expandedTopics.has(course.id) && (
-                  <div className="ml-6 space-y-1 min-w-0">
+                  <div className="ml-4 space-y-1 min-w-0">
                     {courseData.topics.map((topic: Topic, index: number) => {
                       const topicSlides = courseData.slides[topic.id] || []
                       const topicVideos = courseData.videos[topic.id] || []
@@ -873,35 +814,28 @@ const CourseItem = React.memo(
                         <div key={topic.id}>
                           <Button
                             variant="ghost"
-                            className={`w-full justify-start text-left ${isMobile ? 'p-2 min-h-[44px]' : 'p-3'} h-auto min-w-0 sidebar-item-professional touch-manipulation ${
-                              expandedTopicItems.has(topic.id)
-                                ? 'bg-primary/10 border border-primary/20 shadow-sm'
-                                : 'hover:bg-accent'
-                            }`}
+                            className="w-full justify-start text-left p-3 h-auto min-w-0 hover:bg-accent/50 rounded-md touch-manipulation"
                             onClick={() => !isScrolling && onToggleTopicItem(topic.id)}
                           >
-                            <div className="flex items-center gap-2 w-full min-w-0">
-                              {expandedTopicItems.has(topic.id) ? (
-                                <ChevronDown className={`${isMobile ? 'h-4 w-4' : 'h-3 w-3'} text-muted-foreground flex-shrink-0`} />
-                              ) : (
-                                <ChevronRight className={`${isMobile ? 'h-4 w-4' : 'h-3 w-3'} text-muted-foreground flex-shrink-0`} />
-                              )}
-                              <div className="flex-1 min-w-0">
-                                <ProfessionalTopicTitle
-                                  index={index}
-                                  title={topic.title}
-                                  maxLength={isMobile ? 45 : 50}
-                                  variant={isMobile ? "compact" : "default"}
-                                  className={expandedTopicItems.has(topic.id) ? "text-primary font-semibold" : "text-foreground"}
-                                />
+                            <div className="flex items-center justify-between w-full min-w-0">
+                              <div className="flex items-center gap-3 flex-1 min-w-0">
+                                {expandedTopicItems.has(topic.id) ? (
+                                  <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                )}
+                                <span className="text-sm text-foreground truncate">
+                                  {topic.title}
+                                </span>
                               </div>
-
-
+                              <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full flex-shrink-0">
+                                #{index}
+                              </span>
                             </div>
                           </Button>
 
                           {expandedTopicItems.has(topic.id) && (
-                            <div className={`${isMobile ? 'ml-4' : 'ml-6'} space-y-1 topic-content-enter-active mt-2`}>
+                            <div className="ml-6 space-y-1 mt-2">
                               {/* Videos */}
                               {topicVideos.map((video: Video) => {
                                 const isSelected = selectedContentId === video.id
@@ -909,10 +843,10 @@ const CourseItem = React.memo(
                                   <Button
                                     key={video.id}
                                     variant="ghost"
-                                    className={`w-full justify-start text-left ${isMobile ? 'p-2 min-h-[36px]' : 'p-1.5'} h-auto rounded group transition-colors touch-manipulation ${
+                                    className={`w-full justify-start text-left p-2 h-auto rounded-md transition-colors touch-manipulation ${
                                       isSelected
                                         ? "bg-primary/10 text-primary"
-                                        : "hover:bg-accent/50 text-muted-foreground hover:text-foreground"
+                                        : "hover:bg-accent/30 text-muted-foreground hover:text-foreground"
                                     }`}
                                     onClick={() =>
                                       !isScrolling && onContentClick(
@@ -925,7 +859,7 @@ const CourseItem = React.memo(
                                       )
                                     }
                                   >
-                                    <div className="flex items-center gap-2 w-full">
+                                    <div className="flex items-center gap-3 w-full">
                                       <Play className={`h-3 w-3 flex-shrink-0 ${isSelected ? "text-red-500" : "text-red-400"}`} />
                                       <span className={`text-sm truncate ${
                                         isSelected ? "font-medium" : ""
@@ -944,10 +878,10 @@ const CourseItem = React.memo(
                                   <Button
                                     key={slide.id}
                                     variant="ghost"
-                                    className={`w-full justify-start text-left ${isMobile ? 'p-2 min-h-[36px]' : 'p-1.5'} h-auto rounded group transition-colors touch-manipulation ${
+                                    className={`w-full justify-start text-left p-2 h-auto rounded-md transition-colors touch-manipulation ${
                                       isSelected
                                         ? "bg-primary/10 text-primary"
-                                        : "hover:bg-accent/50 text-muted-foreground hover:text-foreground"
+                                        : "hover:bg-accent/30 text-muted-foreground hover:text-foreground"
                                     }`}
                                     onClick={() =>
                                       !isScrolling && onContentClick(
@@ -960,7 +894,7 @@ const CourseItem = React.memo(
                                       )
                                     }
                                   >
-                                    <div className="flex items-center gap-2 w-full">
+                                    <div className="flex items-center gap-3 w-full">
                                       <FileText className={`h-3 w-3 flex-shrink-0 ${isSelected ? "text-blue-500" : "text-blue-400"}`} />
                                       <span className={`text-sm truncate ${
                                         isSelected ? "font-medium" : ""

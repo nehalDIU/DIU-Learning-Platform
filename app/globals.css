@@ -1070,3 +1070,31 @@ html {
 .dark .glow-primary-soft {
   box-shadow: 0 0 40px hsl(var(--primary) / 0.15);
 }
+
+/* Sidebar Content Constraints */
+.sidebar-content-container {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.sidebar-content-container * {
+  max-width: 100%;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Course Card Constraints */
+.course-card-container {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.course-card-content {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
