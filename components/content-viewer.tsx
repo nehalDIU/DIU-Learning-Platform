@@ -21,6 +21,7 @@ interface ContentItem {
   description?: string // For syllabus content
   courseCode?: string
   teacherName?: string
+  tabId?: string
   semesterInfo?: {
     id: string
     title: string
@@ -29,12 +30,29 @@ interface ContentItem {
   }
 }
 
+interface FileTabState {
+  scrollPosition?: number
+  videoCurrentTime?: number
+  videoDuration?: number
+  videoPlaybackRate?: number
+  isVideoPlaying?: boolean
+  lastAccessTime?: number
+  viewportState?: any
+}
+
 interface ContentViewerProps {
   content: ContentItem
   isLoading?: boolean
+  savedState?: FileTabState
+  onStateChange?: (state: Partial<FileTabState>) => void
 }
 
-export const ContentViewer = memo(function ContentViewer({ content, isLoading = false }: ContentViewerProps) {
+export const ContentViewer = memo(function ContentViewer({
+  content,
+  isLoading = false,
+  savedState,
+  onStateChange
+}: ContentViewerProps) {
   const [iframeLoading, setIframeLoading] = useState(true)
   const [iframeError, setIframeError] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -48,6 +66,7 @@ export const ContentViewer = memo(function ContentViewer({ content, isLoading = 
 
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const [hasRestoredState, setHasRestoredState] = useState(false)
   const viewTimeRef = useRef<NodeJS.Timeout>()
   const controlsTimeoutRef = useRef<NodeJS.Timeout>()
 
@@ -357,6 +376,150 @@ export const ContentViewer = memo(function ContentViewer({ content, isLoading = 
   useEffect(() => {
     const bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '[]')
     setIsBookmarked(bookmarks.some((b: any) => b.id === content.id))
+  }, [content.id])
+
+  // Restore saved state when content loads
+  useEffect(() => {
+    if (!savedState || hasRestoredState) return
+
+    const restoreState = () => {
+      // Restore scroll position for documents/slides
+      if (savedState.scrollPosition !== undefined && content.type !== 'video') {
+        const contentElement = containerRef.current?.querySelector('.content-viewer-container')
+        if (contentElement) {
+          contentElement.scrollTop = savedState.scrollPosition
+        }
+      }
+
+      // Restore video state
+      if (content.type === 'video' && savedState.videoCurrentTime !== undefined) {
+        const iframe = iframeRef.current
+        if (iframe && iframe.contentWindow) {
+          // Wait for iframe to load before restoring video state
+          const checkIframeReady = () => {
+            try {
+              // Add tab ID to iframe for identification
+              iframe.setAttribute('data-tab-id', content.tabId || content.id)
+
+              // Seek to saved time
+              iframe.contentWindow?.postMessage(
+                `{"event":"command","func":"seekTo","args":[${savedState.videoCurrentTime}, true]}`,
+                '*'
+              )
+
+              // Restore playback rate if saved
+              if (savedState.videoPlaybackRate) {
+                iframe.contentWindow?.postMessage(
+                  `{"event":"command","func":"setPlaybackRate","args":[${savedState.videoPlaybackRate}]}`,
+                  '*'
+                )
+              }
+
+              // Resume playing if it was playing before
+              if (savedState.isVideoPlaying) {
+                setTimeout(() => {
+                  iframe.contentWindow?.postMessage('{"event":"command","func":"playVideo","args":""}', '*')
+                }, 1000)
+              }
+
+              setHasRestoredState(true)
+            } catch (error) {
+              console.warn('Could not restore video state:', error)
+            }
+          }
+
+          // Wait for iframe to be ready
+          if (iframe.contentDocument?.readyState === 'complete') {
+            setTimeout(checkIframeReady, 1000)
+          } else {
+            iframe.addEventListener('load', () => {
+              setTimeout(checkIframeReady, 1000)
+            })
+          }
+        }
+      } else {
+        setHasRestoredState(true)
+      }
+    }
+
+    // Delay restoration to ensure content is loaded
+    const timer = setTimeout(restoreState, 500)
+    return () => clearTimeout(timer)
+  }, [savedState, content, hasRestoredState])
+
+  // Save state periodically for videos
+  useEffect(() => {
+    if (content.type !== 'video' || !onStateChange) return
+
+    const saveVideoState = () => {
+      const iframe = iframeRef.current
+      if (iframe && iframe.contentWindow) {
+        try {
+          // Request current video state
+          iframe.contentWindow.postMessage('{"event":"command","func":"getCurrentTime","args":""}', '*')
+          iframe.contentWindow.postMessage('{"event":"command","func":"getDuration","args":""}', '*')
+          iframe.contentWindow.postMessage('{"event":"command","func":"getPlaybackRate","args":""}', '*')
+          iframe.contentWindow.postMessage('{"event":"command","func":"getPlayerState","args":""}', '*')
+        } catch (error) {
+          console.warn('Could not save video state:', error)
+        }
+      }
+    }
+
+    // Save state every 5 seconds for videos
+    const interval = setInterval(saveVideoState, 5000)
+    return () => clearInterval(interval)
+  }, [content.type, onStateChange])
+
+  // Listen for YouTube API responses to save state
+  useEffect(() => {
+    if (content.type !== 'video' || !onStateChange) return
+
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== 'https://www.youtube.com') return
+
+      try {
+        const data = JSON.parse(event.data)
+        if (data.event === 'video-progress' || data.info) {
+          onStateChange({
+            videoCurrentTime: data.info?.currentTime || data.currentTime,
+            videoDuration: data.info?.duration || data.duration,
+            videoPlaybackRate: data.info?.playbackRate || data.playbackRate,
+            isVideoPlaying: (data.info?.playerState || data.playerState) === 1
+          })
+        }
+      } catch (error) {
+        // Ignore parsing errors
+      }
+    }
+
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
+  }, [content.type, onStateChange])
+
+  // Save scroll position for non-video content
+  useEffect(() => {
+    if (content.type === 'video' || !onStateChange) return
+
+    const handleScroll = () => {
+      const contentElement = containerRef.current?.querySelector('.content-viewer-container')
+      if (contentElement) {
+        onStateChange({
+          scrollPosition: contentElement.scrollTop
+        })
+      }
+    }
+
+    const contentElement = containerRef.current?.querySelector('.content-viewer-container')
+    if (contentElement) {
+      contentElement.addEventListener('scroll', handleScroll)
+      return () => contentElement.removeEventListener('scroll', handleScroll)
+    }
+  }, [content.type, onStateChange])
+
+  // Reset state restoration flag when content changes
+  useEffect(() => {
+    setHasRestoredState(false)
   }, [content.id])
 
   const getContentIcon = () => {
@@ -913,6 +1076,7 @@ export const ContentViewer = memo(function ContentViewer({ content, isLoading = 
           <iframe
             ref={iframeRef}
             src={embedUrl}
+            data-tab-id={content.tabId || content.id}
             className={`
               w-full h-full border-0 bg-black
               ${isMobile ? 'touch-manipulation' : ''}

@@ -18,6 +18,7 @@ interface ContentItem {
   description?: string
   courseCode?: string
   teacherName?: string
+  tabId?: string
   semesterInfo?: {
     id: string
     title: string
@@ -26,9 +27,21 @@ interface ContentItem {
   }
 }
 
+interface FileTabState {
+  scrollPosition?: number
+  videoCurrentTime?: number
+  videoDuration?: number
+  videoPlaybackRate?: number
+  isVideoPlaying?: boolean
+  lastAccessTime?: number
+  viewportState?: any
+}
+
 interface LazyContentViewerProps {
   content: ContentItem
   isLoading?: boolean
+  savedState?: FileTabState
+  onStateChange?: (state: Partial<FileTabState>) => void
 }
 
 // Loading skeleton component
@@ -45,13 +58,20 @@ const ContentViewerSkeleton = memo(() => (
 
 ContentViewerSkeleton.displayName = "ContentViewerSkeleton"
 
-export const LazyContentViewer = memo(function LazyContentViewer({ 
-  content, 
-  isLoading = false 
+export const LazyContentViewer = memo(function LazyContentViewer({
+  content,
+  isLoading = false,
+  savedState,
+  onStateChange
 }: LazyContentViewerProps) {
   return (
     <Suspense fallback={<ContentViewerSkeleton />}>
-      <ContentViewer content={content} isLoading={isLoading} />
+      <ContentViewer
+        content={content}
+        isLoading={isLoading}
+        savedState={savedState}
+        onStateChange={onStateChange}
+      />
     </Suspense>
   )
 })

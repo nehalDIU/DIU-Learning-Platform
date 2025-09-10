@@ -5,6 +5,7 @@ import { SpeedInsights } from '@vercel/speed-insights/next'
 import { ThemeProvider } from "@/components/theme-provider"
 import { SectionProvider } from "@/contexts/SectionContext"
 import "./globals.css"
+import "@/components/multi-course-content-manager.css"
 
 export const viewport: Viewport = {
   width: 'device-width',

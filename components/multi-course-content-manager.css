@@ -1,0 +1,109 @@
+/* File Tabs Responsive Styles */
+.file-tabs-container {
+  /* Smooth scrolling for tab navigation */
+  scroll-behavior: smooth;
+}
+
+/* Mobile optimizations */
+@media (max-width: 640px) {
+  .file-tab {
+    min-width: 120px;
+    max-width: 160px;
+  }
+  
+  .file-tab-title {
+    max-width: 80px;
+  }
+  
+  .file-tabs-controls {
+    gap: 0.25rem;
+  }
+}
+
+/* Tablet optimizations */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .file-tab {
+    min-width: 140px;
+    max-width: 180px;
+  }
+  
+  .file-tab-title {
+    max-width: 100px;
+  }
+}
+
+/* Desktop optimizations */
+@media (min-width: 1025px) {
+  .file-tab {
+    min-width: 160px;
+    max-width: 200px;
+  }
+  
+  .file-tab-title {
+    max-width: 120px;
+  }
+}
+
+/* Hover animations */
+.file-tab:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.file-tab-close:hover {
+  transform: scale(1.1);
+}
+
+/* Active tab indicator */
+.file-tab-active {
+  position: relative;
+}
+
+.file-tab-active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: currentColor;
+  border-radius: 1px;
+}
+
+/* Smooth transitions */
+.file-tab,
+.file-tab-close,
+.file-tabs-controls button {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Focus styles for accessibility */
+.file-tab:focus-visible,
+.file-tab-close:focus-visible,
+.file-tabs-controls button:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+
+/* Notification animations */
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOut {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
