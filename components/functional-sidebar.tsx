@@ -817,7 +817,7 @@ const CourseItem = React.memo(
                             className={`w-full justify-start text-left ${isMobile ? 'p-2.5 touch-optimized-button mobile-topic-item' : 'p-3'} h-auto min-w-0 hover:bg-accent/50 rounded-md touch-manipulation`}
                             onClick={() => !isScrolling && onToggleTopicItem(topic.id)}
                           >
-                            <div className="flex items-center justify-between w-full min-w-0">
+                            <div className="flex items-center w-full min-w-0">
                               <div className={`flex items-center ${isMobile ? 'gap-2.5' : 'gap-3'} flex-1 min-w-0`}>
                                 {expandedTopicItems.has(topic.id) ? (
                                   <ChevronDown className={`${isMobile ? 'h-3.5 w-3.5' : 'h-4 w-4'} text-muted-foreground flex-shrink-0`} />
@@ -828,9 +828,6 @@ const CourseItem = React.memo(
                                   {topic.title}
                                 </span>
                               </div>
-                              <span className={`${isMobile ? 'text-xs mobile-badge' : 'text-xs'} bg-muted text-muted-foreground px-2 py-1 rounded-full flex-shrink-0`}>
-                                #{index}
-                              </span>
                             </div>
                           </Button>
 

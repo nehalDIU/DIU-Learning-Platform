@@ -1,19 +1,8 @@
 "use client"
 
 import { useState, useCallback, useEffect } from "react"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { 
-  X, 
-  BookOpen, 
-  ChevronLeft, 
-  ChevronRight, 
-  MoreHorizontal,
-  Maximize2,
-  Minimize2
-} from "lucide-react"
+
 import { cn } from "@/lib/utils"
 import { LazyContentViewer } from "@/components/lazy-content-viewer"
 
@@ -30,118 +19,32 @@ interface ContentItem {
   teacherName?: string
 }
 
-interface CourseTab {
-  id: string
-  title: string
-  courseCode?: string
-  content: ContentItem | null
-  isActive: boolean
-}
-
 interface MultiCourseContentManagerProps {
   className?: string
   onContentChange?: (content: ContentItem | null) => void
 }
 
-export function MultiCourseContentManager({ 
-  className, 
-  onContentChange 
+export function MultiCourseContentManager({
+  className,
+  onContentChange
 }: MultiCourseContentManagerProps) {
-  const [courseTabs, setCourseTabs] = useState<CourseTab[]>([])
-  const [activeTabId, setActiveTabId] = useState<string | null>(null)
-  const [isExpanded, setIsExpanded] = useState(false)
+  const [currentContent, setCurrentContent] = useState<ContentItem | null>(null)
 
-  // Add or update a course tab
-  const addOrUpdateCourseTab = useCallback((content: ContentItem) => {
-    const courseId = content.courseId || content.courseTitle || 'unknown'
-    const courseTitle = content.courseTitle || 'Unknown Course'
-    const courseCode = content.courseCode
-
-    setCourseTabs(prev => {
-      const existingTabIndex = prev.findIndex(tab => tab.id === courseId)
-      
-      if (existingTabIndex >= 0) {
-        // Update existing tab
-        const updated = [...prev]
-        updated[existingTabIndex] = {
-          ...updated[existingTabIndex],
-          content,
-          isActive: true
-        }
-        // Deactivate other tabs
-        updated.forEach((tab, index) => {
-          if (index !== existingTabIndex) {
-            tab.isActive = false
-          }
-        })
-        return updated
-      } else {
-        // Add new tab
-        const newTab: CourseTab = {
-          id: courseId,
-          title: courseTitle,
-          courseCode,
-          content,
-          isActive: true
-        }
-        // Deactivate existing tabs and add new one
-        const updated = prev.map(tab => ({ ...tab, isActive: false }))
-        return [...updated, newTab]
-      }
-    })
-
-    setActiveTabId(courseId)
+  // Set content directly
+  const setContent = useCallback((content: ContentItem) => {
+    setCurrentContent(content)
     onContentChange?.(content)
   }, [onContentChange])
-
-  // Remove a course tab
-  const removeCourseTab = useCallback((tabId: string) => {
-    setCourseTabs(prev => {
-      const filtered = prev.filter(tab => tab.id !== tabId)
-      
-      // If we removed the active tab, activate another one
-      if (activeTabId === tabId && filtered.length > 0) {
-        const newActiveTab = filtered[filtered.length - 1]
-        newActiveTab.isActive = true
-        setActiveTabId(newActiveTab.id)
-        onContentChange?.(newActiveTab.content)
-      } else if (filtered.length === 0) {
-        setActiveTabId(null)
-        onContentChange?.(null)
-      }
-      
-      return filtered
-    })
-  }, [activeTabId, onContentChange])
-
-  // Switch to a different tab
-  const switchToTab = useCallback((tabId: string) => {
-    setCourseTabs(prev => 
-      prev.map(tab => ({
-        ...tab,
-        isActive: tab.id === tabId
-      }))
-    )
-    setActiveTabId(tabId)
-    
-    const activeTab = courseTabs.find(tab => tab.id === tabId)
-    onContentChange?.(activeTab?.content || null)
-  }, [courseTabs, onContentChange])
-
-  // Get the currently active content
-  const activeContent = courseTabs.find(tab => tab.id === activeTabId)?.content || null
 
   // Expose methods for external use
   useEffect(() => {
     // Attach methods to window for external access (temporary solution)
     ;(window as any).multiCourseManager = {
-      addContent: addOrUpdateCourseTab,
-      removeTab: removeCourseTab,
-      switchTab: switchToTab
+      addContent: setContent
     }
-  }, [addOrUpdateCourseTab, removeCourseTab, switchToTab])
+  }, [setContent])
 
-  if (courseTabs.length === 0) {
+  if (!currentContent) {
     return (
       <div className={cn(
         "flex items-center justify-center h-full p-4 sm:p-6 lg:p-8",
@@ -196,69 +99,12 @@ export function MultiCourseContentManager({
 
   return (
     <div className={cn("h-full flex flex-col", className)}>
-      {/* Course Tabs Header */}
-      <div className="flex-none border-b border-border bg-card/50 backdrop-blur-sm">
-        <div className="flex items-center justify-between px-2 py-1">
-          {/* Tabs */}
-          <ScrollArea className="flex-1">
-            <div className="flex items-center gap-1 px-2">
-              {courseTabs.map((tab) => (
-                <Button
-                  key={tab.id}
-                  variant={tab.isActive ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => switchToTab(tab.id)}
-                  className={cn(
-                    "flex items-center gap-2 min-w-0 max-w-48 h-8 px-3",
-                    tab.isActive && "bg-primary text-primary-foreground"
-                  )}
-                >
-                  <BookOpen className="h-3 w-3 shrink-0" />
-                  <div className="flex flex-col items-start min-w-0">
-                    <span className="text-xs font-medium truncate">
-                      {tab.courseCode || tab.title}
-                    </span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      removeCourseTab(tab.id)
-                    }}
-                    className="h-4 w-4 p-0 hover:bg-destructive/20 ml-1"
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </Button>
-              ))}
-            </div>
-          </ScrollArea>
-
-          {/* Controls */}
-          <div className="flex items-center gap-1 ml-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="h-8 w-8 p-0"
-            >
-              {isExpanded ? (
-                <Minimize2 className="h-3 w-3" />
-              ) : (
-                <Maximize2 className="h-3 w-3" />
-              )}
-            </Button>
-          </div>
-        </div>
-      </div>
-
       {/* Content Area */}
       <div className="flex-1 overflow-hidden">
-        {activeContent && (
+        {currentContent && (
           <div className="h-full">
-            <LazyContentViewer 
-              content={activeContent} 
+            <LazyContentViewer
+              content={currentContent}
               isLoading={false}
             />
           </div>
@@ -266,19 +112,19 @@ export function MultiCourseContentManager({
       </div>
 
       {/* Content Info Footer */}
-      {activeContent && (
+      {currentContent && (
         <div className="flex-none bg-card/95 backdrop-blur-sm px-3 py-2 border-t border-border/50">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 min-w-0">
               <Badge variant="secondary" className="text-xs">
-                {activeContent.type}
+                {currentContent.type}
               </Badge>
               <span className="text-sm font-medium truncate">
-                {activeContent.title}
+                {currentContent.title}
               </span>
             </div>
             <div className="text-xs text-muted-foreground">
-              {activeContent.courseTitle}
+              {currentContent.courseTitle}
             </div>
           </div>
         </div>

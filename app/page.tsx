@@ -582,66 +582,68 @@ function HomePageContent() {
                     </div>
                   </div>
 
-                  {/* Bottom Controls - Desktop */}
-                  <div className="bg-card/95 backdrop-blur-sm px-2 sm:px-3 md:px-4 lg:px-6 py-2 sm:py-3 lg:py-4 border-t border-border/50 shadow-lg">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
-                      {/* Content Info */}
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 min-w-0 flex-1">
-                        <Badge
-                          variant="secondary"
-                          className={`text-xs font-medium w-fit ${
-                            selectedContent.type === "video"
-                              ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
-                              : selectedContent.type === "slide"
-                                ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
-                                : "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
-                          }`}
-                        >
-                          {selectedContent.type === "slide"
-                            ? "Slide Presentation"
-                            : selectedContent.type === "video"
-                              ? "Video Content"
-                              : "Document"}
-                        </Badge>
-                        {selectedContent.courseTitle && (
-                          <span className="text-muted-foreground text-xs sm:text-sm truncate max-w-[200px] sm:max-w-none">
-                            {selectedContent.courseTitle}
-                            {selectedContent.topicTitle && ` • ${selectedContent.topicTitle}`}
-                          </span>
-                        )}
-                      </div>
+                  {/* Bottom Controls - Desktop Only */}
+                  {!isMobile && (
+                    <div className="bg-card/95 backdrop-blur-sm px-2 sm:px-3 md:px-4 lg:px-6 py-2 sm:py-3 lg:py-4 border-t border-border/50 shadow-lg">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
+                        {/* Content Info */}
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 min-w-0 flex-1">
+                          <Badge
+                            variant="secondary"
+                            className={`text-xs font-medium w-fit ${
+                              selectedContent.type === "video"
+                                ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
+                                : selectedContent.type === "slide"
+                                  ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+                                  : "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                            }`}
+                          >
+                            {selectedContent.type === "slide"
+                              ? "Slide Presentation"
+                              : selectedContent.type === "video"
+                                ? "Video Content"
+                                : "Document"}
+                          </Badge>
+                          {selectedContent.courseTitle && (
+                            <span className="text-muted-foreground text-xs sm:text-sm truncate max-w-[200px] sm:max-w-none">
+                              {selectedContent.courseTitle}
+                              {selectedContent.topicTitle && ` • ${selectedContent.topicTitle}`}
+                            </span>
+                          )}
+                        </div>
 
-                      {/* Action Buttons - Desktop */}
-                      <div className="flex items-center gap-1 sm:gap-2 w-full sm:w-auto">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleDownload}
-                          className="flex-1 sm:flex-none text-xs sm:text-sm h-8 sm:h-9 touch-manipulation min-w-0"
-                          disabled={isLoading}
-                        >
-                          <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 flex-shrink-0" />
-                          <span className="hidden xs:inline truncate">
-                            {selectedContent.type === "video" ? "Watch" : "Download"}
-                          </span>
-                          <span className="xs:hidden">
-                            {selectedContent.type === "video" ? "▶" : "Download"}
-                          </span>
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleFullscreen}
-                          className="flex-1 sm:flex-none text-xs sm:text-sm h-8 sm:h-9 touch-manipulation"
-                          disabled={isLoading}
-                        >
-                          <Maximize className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                          <span className="hidden sm:inline">Fullscreen</span>
-                          <span className="sm:hidden">Full</span>
-                        </Button>
+                        {/* Action Buttons - Desktop */}
+                        <div className="flex items-center gap-1 sm:gap-2 w-full sm:w-auto">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleDownload}
+                            className="flex-1 sm:flex-none text-xs sm:text-sm h-8 sm:h-9 touch-manipulation min-w-0"
+                            disabled={isLoading}
+                          >
+                            <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 flex-shrink-0" />
+                            <span className="hidden xs:inline truncate">
+                              {selectedContent.type === "video" ? "Watch" : "Download"}
+                            </span>
+                            <span className="xs:hidden">
+                              {selectedContent.type === "video" ? "▶" : "Download"}
+                            </span>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleFullscreen}
+                            className="flex-1 sm:flex-none text-xs sm:text-sm h-8 sm:h-9 touch-manipulation"
+                            disabled={isLoading}
+                          >
+                            <Maximize className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                            <span className="hidden sm:inline">Fullscreen</span>
+                            <span className="sm:hidden">Full</span>
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
                 </>
               ) : (
                 <MultiCourseContentManager

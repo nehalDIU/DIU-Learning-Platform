@@ -445,7 +445,7 @@ const EnrolledCourseItem = React.memo(({
                         className="w-full justify-start text-left p-3 h-auto rounded-md hover:bg-accent/50"
                         onClick={() => onToggleTopicItem(topic.id)}
                       >
-                        <div className="flex items-center justify-between w-full min-w-0">
+                        <div className="flex items-center w-full min-w-0">
                           <div className="flex items-center gap-3 flex-1 min-w-0">
                             {expandedTopicItems.has(topic.id) ? (
                               <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -456,9 +456,6 @@ const EnrolledCourseItem = React.memo(({
                               {topic.title}
                             </span>
                           </div>
-                          <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full flex-shrink-0">
-                            #{index}
-                          </span>
                         </div>
                       </Button>
 
