@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -72,19 +72,35 @@ interface EnrolledCourseDetailProps {
   className?: string
 }
 
-export function EnrolledCourseDetail({ 
-  course, 
-  isExpanded, 
-  onToggle, 
-  className 
+export function EnrolledCourseDetail({
+  course,
+  isExpanded,
+  onToggle,
+  className
 }: EnrolledCourseDetailProps) {
   const [topics, setTopics] = useState<Topic[]>([])
   const [studyResources, setStudyResources] = useState<StudyResource[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
+  const [contentHeight, setContentHeight] = useState(0)
 
-  const fetchCourseContent = async () => {
-    if (!isExpanded || topics.length > 0) return
+  // Memoize expensive calculations
+  const cardClasses = useMemo(() => cn(
+    "group transition-all duration-200 hover:shadow-md border-0 bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-900 dark:to-slate-800/50",
+    "shadow-sm hover:shadow-lg will-change-transform",
+    className
+  ), [className])
+
+  const totalContent = useMemo(() => {
+    return topics.reduce((total, topic) =>
+      total + (topic.slides?.length || 0) + (topic.videos?.length || 0), 0
+    )
+  }, [topics])
+
+  // Optimized data fetching
+  const fetchCourseContent = useCallback(async () => {
+    if (!isExpanded || topics.length > 0 || loading) return
 
     setLoading(true)
     setError(null)
@@ -113,33 +129,43 @@ export function EnrolledCourseDetail({
       setStudyResources(studyResourcesData || [])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load course content')
+      setTopics([]) // Prevent refetching
+      setStudyResources([])
     } finally {
       setLoading(false)
     }
-  }
+  }, [isExpanded, topics.length, loading, course.id])
 
+  // Optimized useEffect with proper dependencies
   useEffect(() => {
     if (isExpanded) {
-      fetchCourseContent()
+      // Use requestAnimationFrame for better performance
+      requestAnimationFrame(() => {
+        fetchCourseContent()
+      })
     }
-  }, [isExpanded, course.id])
+  }, [isExpanded, fetchCourseContent])
 
-  const totalContent = topics.reduce((acc, topic) => 
-    acc + topic.slides.length + topic.videos.length, 0
-  )
+  // Handle smooth height transitions
+  useEffect(() => {
+    if (contentRef.current) {
+      if (isExpanded) {
+        const height = contentRef.current.scrollHeight
+        setContentHeight(height)
+      } else {
+        setContentHeight(0)
+      }
+    }
+  }, [isExpanded, topics, studyResources, loading])
 
-  const handleContentClick = (url: string, title: string) => {
+  const handleContentClick = useCallback((url: string, title: string) => {
     if (url) {
       window.open(url, '_blank', 'noopener,noreferrer')
     }
-  }
+  }, [])
 
   return (
-    <Card className={cn(
-      "group transition-all duration-300 hover:shadow-md border-0 bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-900 dark:to-slate-800/50",
-      "shadow-sm hover:shadow-lg",
-      className
-    )}>
+    <Card className={cardClasses}>
       <CardHeader className="pb-4 px-4 sm:px-6">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -219,10 +245,17 @@ export function EnrolledCourseDetail({
         )}
       </CardHeader>
 
-      {isExpanded && (
-        <CardContent className="pt-0 px-4 sm:px-6 pb-6">
+      {/* Optimized Expanded Content with smooth height transition */}
+      <div
+        className="overflow-hidden transition-all duration-200 ease-out"
+        style={{
+          height: isExpanded ? `${contentHeight}px` : '0px',
+          opacity: isExpanded ? 1 : 0
+        }}
+      >
+        <CardContent className="pt-0 px-4 sm:px-6 pb-6" ref={contentRef}>
           {loading ? (
-            <div className="space-y-4">
+            <div className="space-y-4 py-4">
               <div className="grid grid-cols-3 gap-4">
                 <Skeleton className="h-16 rounded-lg" />
                 <Skeleton className="h-16 rounded-lg" />
@@ -233,7 +266,7 @@ export function EnrolledCourseDetail({
               <Skeleton className="h-4 w-1/2" />
             </div>
           ) : error ? (
-            <Alert className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950/50">
+            <Alert className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950/50 my-4">
               <AlertDescription className="text-red-800 dark:text-red-400">
                 {error}
               </AlertDescription>
@@ -424,7 +457,7 @@ export function EnrolledCourseDetail({
             </div>
           )}
         </CardContent>
-      )}
+      </div>
     </Card>
   )
 }

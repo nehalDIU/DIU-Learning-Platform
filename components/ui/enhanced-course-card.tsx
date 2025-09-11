@@ -1,13 +1,13 @@
 "use client"
 
 import * as React from "react"
-import { useState, useCallback, memo } from "react"
-import { 
-  ChevronDown, 
-  ChevronRight, 
-  Star, 
-  BookOpen, 
-  User, 
+import { useState, useCallback, memo, useMemo, useRef, useEffect } from "react"
+import {
+  ChevronDown,
+  ChevronRight,
+  Star,
+  BookOpen,
+  User,
   Calendar,
   Clock,
   GraduationCap,
@@ -22,11 +22,11 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 
@@ -86,33 +86,68 @@ export const EnhancedCourseCard = memo(({
   const [isExpanded, setIsExpanded] = useState(false)
   const [courseData, setCourseData] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const contentRef = useRef<HTMLDivElement>(null)
+  const [contentHeight, setContentHeight] = useState(0)
 
+  // Memoize expensive calculations
+  const cardClasses = useMemo(() => cn(
+    "group relative overflow-hidden transition-all duration-200 ease-out will-change-transform",
+    "hover:shadow-lg hover:-translate-y-1",
+    course.is_highlighted
+      ? "border-l-4 border-l-blue-500 dark:border-l-blue-400 bg-gradient-to-br from-blue-50/50 to-indigo-50/30 dark:from-blue-950/20 dark:to-indigo-950/10"
+      : "border-l-4 border-l-transparent hover:border-l-primary/20",
+    "cursor-pointer",
+    className
+  ), [course.is_highlighted, className])
+
+  // Optimized data fetching with caching
   const fetchCourseData = useCallback(async () => {
     if (courseData || isLoading || variant === "compact") return
 
     setIsLoading(true)
     try {
       const response = await fetch(`/api/courses/${course.id}/topics`)
+      if (!response.ok) throw new Error('Failed to fetch')
       const data = await response.json()
       setCourseData(data)
     } catch (error) {
       console.error("Failed to fetch course data:", error)
+      setCourseData([]) // Set empty array to prevent refetching
     } finally {
       setIsLoading(false)
     }
   }, [course.id, courseData, isLoading, variant])
 
+  // Optimized toggle handler
   const handleToggle = useCallback(() => {
     if (variant === "compact") {
       onCourseSelect?.(course.id)
       return
     }
-    
-    setIsExpanded(prev => !prev)
-    if (!isExpanded) {
-      fetchCourseData()
+
+    setIsExpanded(prev => {
+      const newExpanded = !prev
+      if (newExpanded && !courseData && !isLoading) {
+        // Use requestAnimationFrame for better performance
+        requestAnimationFrame(() => {
+          fetchCourseData()
+        })
+      }
+      return newExpanded
+    })
+  }, [variant, onCourseSelect, course.id, courseData, isLoading, fetchCourseData])
+
+  // Handle smooth height transitions
+  useEffect(() => {
+    if (contentRef.current) {
+      if (isExpanded) {
+        const height = contentRef.current.scrollHeight
+        setContentHeight(height)
+      } else {
+        setContentHeight(0)
+      }
     }
-  }, [variant, onCourseSelect, course.id, isExpanded, fetchCourseData])
+  }, [isExpanded, courseData])
 
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
@@ -131,15 +166,7 @@ export const EnhancedCourseCard = memo(({
   }
 
   return (
-    <Card className={cn(
-      "group relative overflow-hidden transition-all duration-300 ease-out",
-      "hover:shadow-lg hover:-translate-y-1",
-      course.is_highlighted
-        ? "border-l-4 border-l-blue-500 dark:border-l-blue-400 bg-gradient-to-br from-blue-50/50 to-indigo-50/30 dark:from-blue-950/20 dark:to-indigo-950/10"
-        : "border-l-4 border-l-transparent hover:border-l-primary/20",
-      "cursor-pointer",
-      className
-    )}>
+    <Card className={cardClasses}>
       {/* Gradient overlay for highlighted courses */}
       {course.is_highlighted && (
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 pointer-events-none" />
@@ -284,32 +311,58 @@ export const EnhancedCourseCard = memo(({
         </div>
       </CardHeader>
 
-      {/* Expanded Content */}
-      {isExpanded && courseData && variant !== "compact" && (
-        <CardContent className="pt-0 pb-6 px-6">
-          <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
-            {courseData.map((topic: any, index: number) => (
-              <div
-                key={topic.id}
-                className="p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors cursor-pointer"
-                onClick={() => onContentSelect?.(topic)}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <FileText className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{topic.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {topic.slides?.length || 0} slides • {topic.videos?.length || 0} videos
-                    </p>
-                  </div>
+      {/* Optimized Expanded Content with smooth height transition */}
+      <div
+        className="overflow-hidden transition-all duration-200 ease-out"
+        style={{
+          height: isExpanded ? `${contentHeight}px` : '0px',
+          opacity: isExpanded ? 1 : 0
+        }}
+      >
+        <CardContent className="pt-0 pb-6 px-6" ref={contentRef}>
+          {isLoading ? (
+            <div className="space-y-2 py-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-muted animate-pulse" />
+                <div className="flex-1 space-y-1">
+                  <div className="h-4 bg-muted rounded animate-pulse" />
+                  <div className="h-3 bg-muted rounded w-2/3 animate-pulse" />
                 </div>
               </div>
-            ))}
-          </div>
+            </div>
+          ) : courseData && courseData.length > 0 ? (
+            <div className="space-y-2 py-2">
+              {courseData.map((topic: any, index: number) => (
+                <div
+                  key={topic.id}
+                  className="p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors duration-150 cursor-pointer will-change-transform"
+                  onClick={() => onContentSelect?.(topic)}
+                  style={{
+                    animationDelay: `${index * 50}ms`,
+                    animation: isExpanded ? 'fadeInUp 0.3s ease-out forwards' : 'none'
+                  }}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <FileText className="h-4 w-4 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{topic.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {topic.slides?.length || 0} slides • {topic.videos?.length || 0} videos
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : courseData && courseData.length === 0 ? (
+            <div className="py-4 text-center text-muted-foreground text-sm">
+              No content available
+            </div>
+          ) : null}
         </CardContent>
-      )}
+      </div>
     </Card>
   )
 })
