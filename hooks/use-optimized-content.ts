@@ -74,19 +74,22 @@ export function useOptimizedContent(options: UseOptimizedContentOptions = {}) {
       return cached
     }
 
-    // Determine API endpoint
+    // Determine API endpoint - use full APIs for complete course/topic data
     let apiEndpoint: string
     if (type === 'slide') {
-      apiEndpoint = `/api/slides-simple/${id}`
+      apiEndpoint = `/api/slides/${id}`
     } else if (type === 'video') {
-      apiEndpoint = `/api/videos-simple/${id}`
+      apiEndpoint = `/api/videos/${id}`
     } else if (type === 'study-tool') {
-      apiEndpoint = `/api/study-tools-simple/${id}`
+      apiEndpoint = `/api/study-tools/${id}`
     } else {
       apiEndpoint = `/api/${type}s/${id}`
     }
 
-    const response = await fetch(apiEndpoint, { signal })
+    // Add cache busting parameter to force fresh data
+    const cacheBustingUrl = `${apiEndpoint}?v=${Date.now()}`
+    console.log("🔄 Optimized Content Hook - API Endpoint:", cacheBustingUrl)
+    const response = await fetch(cacheBustingUrl, { signal })
     
     if (!response.ok) {
       throw new Error(`Failed to fetch ${type}: ${response.statusText}`)

@@ -2,9 +2,13 @@ import { NextResponse, type NextRequest } from "next/server"
 import { createClient } from "@/lib/supabase"
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  console.log("Videos API called with ID:", id)
+
   try {
-    const { id } = await params
+    console.log("Creating Supabase client...")
     const supabase = createClient()
+    console.log("Supabase client created successfully")
 
     const { data, error } = await supabase
       .from("videos")
@@ -13,7 +17,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         title,
         youtube_url,
         description,
-        duration,
         order_index,
         topic_id,
         created_at,

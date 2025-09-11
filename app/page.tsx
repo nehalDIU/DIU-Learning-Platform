@@ -123,24 +123,28 @@ function HomePageContent() {
       if (parsedUrl) {
         try {
           setFallbackLoading(true)
+          console.log("🔄 About to call loadContent with:", parsedUrl.type, parsedUrl.id)
           // Use optimized content loading
           await loadContent(parsedUrl.type, parsedUrl.id)
+          console.log("🔄 loadContent completed")
 
-          // Fetch content data from API (using simplified endpoints)
+          // Fetch content data from API (using full endpoints for complete course/topic info)
           let apiEndpoint
           if (parsedUrl.type === 'slide') {
-            apiEndpoint = `/api/slides-simple/${parsedUrl.id}`
+            apiEndpoint = `/api/slides/${parsedUrl.id}`
           } else if (parsedUrl.type === 'video') {
-            apiEndpoint = `/api/videos-simple/${parsedUrl.id}`
+            apiEndpoint = `/api/videos/${parsedUrl.id}`
           } else if (parsedUrl.type === 'study-tool') {
-            apiEndpoint = `/api/study-tools-simple/${parsedUrl.id}`
+            apiEndpoint = `/api/study-tools/${parsedUrl.id}`
           } else {
             // Fallback to regular API
             apiEndpoint = `/api/${parsedUrl.type === 'study-tool' ? 'study-tools' : `${parsedUrl.type}s`}/${parsedUrl.id}`
           }
-          console.log("📡 API Endpoint:", apiEndpoint)
+          console.log("📡 API Endpoint (Full API):", apiEndpoint)
 
-          const response = await fetch(apiEndpoint)
+          const cacheBustingUrl = `${apiEndpoint}?v=${Date.now()}`
+          const response = await fetch(cacheBustingUrl)
+          console.log("📡 Main Page - Fetching from:", cacheBustingUrl)
           console.log("📡 API Response status:", response.status)
 
           if (response.ok) {
@@ -153,23 +157,72 @@ function HomePageContent() {
             }
 
             // Convert API response to ContentItem format
-            const content: ContentItem = {
-              id: contentData.id,
-              type: parsedUrl.type === 'study-tool' ?
-                    (contentData.studyToolType === 'syllabus' ? 'syllabus' : 'study-tool') :
-                    parsedUrl.type as "slide" | "video",
-              title: contentData.title,
-              url: contentData.url,
-              topicTitle: parsedUrl.type === 'study-tool' ? undefined : contentData.topic?.title,
-              courseTitle: parsedUrl.type === 'study-tool' ?
-                    contentData.course?.title :
-                    (contentData.topic?.course?.title || contentData.course?.title),
-              description: contentData.description,
+            let content: ContentItem
+
+            if (parsedUrl.type === 'video') {
+              content = {
+                id: contentData.id,
+                type: 'video',
+                title: contentData.title,
+                url: contentData.url || contentData.youtube_url, // Handle both full and simplified API formats
+                topicTitle: contentData.topic?.title,
+                courseTitle: contentData.topic?.course?.title,
+                description: contentData.description,
+              }
+            } else if (parsedUrl.type === 'slide') {
+              content = {
+                id: contentData.id,
+                type: 'slide',
+                title: contentData.title,
+                url: contentData.url || contentData.google_drive_url, // Handle both full and simplified API formats
+                topicTitle: contentData.topic?.title,
+                courseTitle: contentData.topic?.course?.title,
+                description: contentData.description,
+              }
+            } else if (parsedUrl.type === 'study-tool') {
+              content = {
+                id: contentData.id,
+                type: contentData.type === 'syllabus' ? 'syllabus' : 'study-tool',
+                title: contentData.title,
+                url: contentData.url || contentData.content_url, // Handle both full and simplified API formats
+                courseTitle: contentData.topic?.course?.title || contentData.course?.title, // Handle both formats
+                description: contentData.description,
+              }
+            } else {
+              throw new Error(`Unsupported content type: ${parsedUrl.type}`)
             }
 
             console.log("✅ Setting content:", content.title)
             setSelectedContent(content)
             console.log("✅ Content set successfully!")
+
+            // Auto-enroll user in the course if they have course info and are authenticated
+            if (content.courseTitle && isAuthenticated && (contentData.topic?.course?.id || contentData.course?.id)) {
+              const courseId = contentData.topic?.course?.id || contentData.course?.id
+              console.log("🎓 Auto-enrolling user in course:", courseId)
+
+              try {
+                const enrollResponse = await fetch('/api/courses/enroll', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    courseId: courseId,
+                    userId: userId || 'anonymous'
+                  })
+                })
+
+                if (enrollResponse.ok) {
+                  console.log("✅ Auto-enrollment successful")
+                } else {
+                  const enrollError = await enrollResponse.json()
+                  console.log("ℹ️ Auto-enrollment info:", enrollError.error)
+                }
+              } catch (enrollError) {
+                console.log("ℹ️ Auto-enrollment skipped:", enrollError)
+              }
+            }
 
             // Update the browser URL to show the shareable URL (without query params)
             const shareUrl = generateSimpleShareUrl(parsedUrl.type, parsedUrl.id)
@@ -228,7 +281,7 @@ function HomePageContent() {
     // Add a small delay to ensure everything is mounted
     const timer = setTimeout(loadContentFromUrl, 100)
     return () => clearTimeout(timer)
-  }, [mounted, toast, loadContent, setFallbackLoading])
+  }, [mounted, toast, loadContent, setFallbackLoading, userId, isAuthenticated])
 
   // Initialize with highlighted course syllabus if available (only if no shareable URL)
   useEffect(() => {
