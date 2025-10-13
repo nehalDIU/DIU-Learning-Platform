@@ -352,6 +352,12 @@ export function EnhancedSectionSemesterManagement() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
+
+        // Handle authentication errors specifically
+        if (response.status === 401) {
+          throw new Error('Authentication required. Please log in to edit semesters.')
+        }
+
         throw new Error(errorData.error || `Server error: ${response.status}`)
       }
 
@@ -361,9 +367,12 @@ export function EnhancedSectionSemesterManagement() {
       // Transform the courses data to match the form structure
       const transformedCourses = (semesterData.courses || []).map((course: any) => ({
         title: course.title || '',
-        code: course.code || '',
+        course_code: course.course_code || course.code || '',
+        teacher_name: course.teacher_name || '',
+        teacher_email: course.teacher_email || '',
         credits: course.credits || 3,
         description: course.description || '',
+        is_active: course.is_active !== false,
         topics: (course.topics || []).map((topic: any) => ({
           title: topic.title || '',
           description: topic.description || '',
@@ -440,7 +449,18 @@ export function EnhancedSectionSemesterManagement() {
     } catch (error) {
       console.error('Error loading semester for edit:', error)
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      toast.error(`Failed to load semester: ${errorMessage}`)
+
+      // Show specific message for authentication errors
+      if (errorMessage.includes('Authentication required')) {
+        toast.error('Please log in to edit semesters', {
+          action: {
+            label: 'Go to Login',
+            onClick: () => window.location.href = '/login'
+          }
+        })
+      } else {
+        toast.error(`Failed to load semester: ${errorMessage}`)
+      }
     }
   }
 

@@ -177,13 +177,130 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       )
     }
 
-    // Note: For a complete implementation, you would also handle updating courses, topics, etc.
-    // This is a simplified version that only updates the semester basic info
+    // Handle course updates if provided
+    console.log(`Processing ${courses.length} courses for semester update`)
+
+    if (courses.length > 0) {
+      // For simplicity, we'll delete existing courses and recreate them
+      // In production, you might want a more sophisticated update strategy
+
+      // Delete existing courses (this will cascade to topics, slides, videos, study_tools)
+      const { error: deleteError } = await supabase
+        .from("courses")
+        .delete()
+        .eq("semester_id", semesterId)
+
+      if (deleteError) {
+        console.error("Error deleting existing courses:", deleteError)
+      }
+
+      // Create new courses
+      const coursesToInsert = courses.map((course: any) => ({
+        semester_id: semesterId,
+        title: course.title,
+        course_code: course.course_code || course.code,
+        teacher_name: course.teacher_name,
+        teacher_email: course.teacher_email || null,
+        credits: course.credits || semester.default_credits || 3,
+        description: course.description || "",
+        is_highlighted: course.is_highlighted || false
+      }))
+
+      const { data: newCourses, error: coursesError } = await supabase
+        .from("courses")
+        .insert(coursesToInsert)
+        .select()
+
+      if (coursesError) {
+        console.error("Error creating courses:", coursesError)
+      } else if (newCourses) {
+        // Create topics and nested content for each course
+        for (const [index, course] of courses.entries()) {
+          const courseId = newCourses[index]?.id
+          if (!courseId) continue
+
+          // Create topics
+          if (course.topics && course.topics.length > 0) {
+            const topicsToInsert = course.topics.map((topic: any, topicIndex: number) => ({
+              course_id: courseId,
+              title: topic.title,
+              description: topic.description || "",
+              order_index: topic.order_index ?? topicIndex
+            }))
+
+            const { data: newTopics, error: topicsError } = await supabase
+              .from("topics")
+              .insert(topicsToInsert)
+              .select()
+
+            if (topicsError) {
+              console.error("Error creating topics:", topicsError)
+            } else if (newTopics) {
+              // Create slides and videos for each topic
+              for (const [topicIndex, topic] of course.topics.entries()) {
+                const topicId = newTopics[topicIndex]?.id
+                if (!topicId) continue
+
+                // Create slides
+                if (topic.slides && topic.slides.length > 0) {
+                  const slidesToInsert = topic.slides.map((slide: any, slideIndex: number) => ({
+                    topic_id: topicId,
+                    title: slide.title,
+                    google_drive_url: slide.google_drive_url || slide.url,
+                    description: slide.description || "",
+                    order_index: slide.order_index ?? slideIndex
+                  }))
+
+                  const { error: slidesError } = await supabase.from("slides").insert(slidesToInsert)
+                  if (slidesError) {
+                    console.error("Error creating slides:", slidesError)
+                  }
+                }
+
+                // Create videos
+                if (topic.videos && topic.videos.length > 0) {
+                  const videosToInsert = topic.videos.map((video: any, videoIndex: number) => ({
+                    topic_id: topicId,
+                    title: video.title,
+                    youtube_url: video.youtube_url || video.url,
+                    description: video.description || "",
+                    order_index: video.order_index ?? videoIndex
+                  }))
+
+                  const { error: videosError } = await supabase.from("videos").insert(videosToInsert)
+                  if (videosError) {
+                    console.error("Error creating videos:", videosError)
+                  }
+                }
+              }
+            }
+          }
+
+          // Create study resources/tools
+          const studyResources = course.study_resources || course.studyTools || []
+          if (studyResources.length > 0) {
+            const studyToolsToInsert = studyResources.map((tool: any) => ({
+              course_id: courseId,
+              title: tool.title,
+              type: tool.type || "exam_note",
+              content_url: tool.content_url,
+              exam_type: tool.exam_type || "both",
+              description: tool.description || ""
+            }))
+
+            const { error: studyToolsError } = await supabase.from("study_tools").insert(studyToolsToInsert)
+            if (studyToolsError) {
+              console.error("Error creating study tools:", studyToolsError)
+            }
+          }
+        }
+      }
+    }
 
     return NextResponse.json({
       success: true,
       semester: updatedSemester,
-      message: "Semester updated successfully"
+      message: "Semester and courses updated successfully"
     })
   } catch (error) {
     console.error("API error:", error)
