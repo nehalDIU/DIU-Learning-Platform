@@ -622,22 +622,20 @@ export const ContentViewer = memo(function ContentViewer({
 
   return (
     <div className={`
-      content-viewer-container h-full bg-white dark:bg-[#35374B] rounded-lg overflow-hidden
-      shadow-lg sm:shadow-2xl relative transition-all duration-300
-      dark:shadow-[0_8px_25px_-5px_rgba(53,55,75,0.4),0_16px_40px_-8px_rgba(53,55,75,0.3)]
+      content-viewer-container h-full bg-black overflow-hidden relative transition-all duration-300
+      ${isMobile ? '' : 'bg-white dark:bg-[#35374B] rounded-lg shadow-lg sm:shadow-2xl dark:shadow-[0_8px_25px_-5px_rgba(53,55,75,0.4),0_16px_40px_-8px_rgba(53,55,75,0.3)]'}
       ${isFullscreen ? 'fixed inset-0 z-50 rounded-none' : ''}
       ${isMobile ? 'mobile-content-viewer' : ''}
     `}>
-      {/* Content Header - Hidden for syllabus */}
-      {content.type !== "syllabus" && (
+      {/* Content Header - Hidden for syllabus and mobile */}
+      {content.type !== "syllabus" && !isMobile && (
         <div className={`
           absolute top-0 left-0 right-0 z-20
           bg-gradient-to-b from-black/0 via-black/0 to-transparent
           hover:from-black/80 hover:via-black/60 hover:to-transparent
           dark:hover:from-gray-900/90 dark:hover:via-gray-900/70 dark:hover:to-transparent
           transition-all duration-300 ease-in-out
-          ${isMobile ? 'p-2 sm:p-3' : 'p-3 sm:p-4 lg:p-5'}
-          ${isFullscreen && isMobile ? 'pt-safe-top' : ''}
+          p-3 sm:p-4 lg:p-5
           group
         `}>
         <div className="flex items-start justify-between text-white opacity-0 group-hover:opacity-100

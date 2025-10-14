@@ -629,8 +629,8 @@ function HomePageContent() {
         {/* Mobile Layout: Content at top, sidebar below */}
         {isMobile ? (
           <>
-            {/* Content Area - Mobile */}
-            <div className="flex-none bg-background mobile-content-viewer" style={{ height: selectedContent ? '50vh' : 'auto' }}>
+            {/* Content Area - Mobile - YouTube Style */}
+            <div className={`flex-none bg-black transition-all duration-200 ${selectedContent ? 'h-[35vh]' : 'h-0'}`}>
               {useMultiCourse ? (
                 <MultiCourseContentManager
                   onContentChange={setSelectedContent}
@@ -639,68 +639,16 @@ function HomePageContent() {
               ) : selectedContent ? (
                 <>
                   {console.log("📱 Rendering mobile content viewer for:", selectedContent.title)}
-                  {/* Content Viewer - Enhanced Mobile Design */}
-                  <div className="relative w-full h-full">
-                    <div className="absolute inset-0 overflow-hidden bg-black rounded-b-lg">
-                      <LazyContentViewer content={selectedContent} isLoading={isLoading} />
-                    </div>
-
-                    {/* Mobile Content Info Overlay */}
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-8">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-white font-medium text-sm truncate mb-1">
-                            {selectedContent.title}
-                          </h3>
-                          {selectedContent.courseTitle && (
-                            <p className="text-white/80 text-xs truncate">
-                              {selectedContent.courseTitle}
-                              {selectedContent.topicTitle && ` • ${selectedContent.topicTitle}`}
-                            </p>
-                          )}
-                        </div>
-
-                        {/* Mobile Action Buttons */}
-                        <div className="flex items-center gap-2 ml-3">
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={handleDownload}
-                            className="h-8 w-8 p-0 bg-white/20 hover:bg-white/30 border-white/20 touch-manipulation"
-                            disabled={isLoading}
-                          >
-                            <Download className="h-4 w-4 text-white" />
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={handleFullscreen}
-                            className="h-8 w-8 p-0 bg-white/20 hover:bg-white/30 border-white/20 touch-manipulation"
-                            disabled={isLoading}
-                          >
-                            <Maximize className="h-4 w-4 text-white" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
+                  {/* Content Viewer - YouTube Style - Just Content */}
+                  <div className="relative w-full h-full bg-black">
+                    <LazyContentViewer content={selectedContent} isLoading={isLoading} />
                   </div>
                 </>
-              ) : (
-                <div className="flex items-center justify-center h-40 bg-background">
-                  <div className="text-center px-4">
-                    <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-3">
-                      <span className="text-muted-foreground font-semibold text-lg">DIU</span>
-                    </div>
-                    <p className="text-muted-foreground text-sm">
-                      Select content from courses below
-                    </p>
-                  </div>
-                </div>
-              )}
+              ) : null}
             </div>
 
-            {/* Enhanced Sidebar - Mobile (below content) */}
-            <div className="flex-1 bg-card border-t border-border overflow-hidden mobile-sidebar">
+            {/* Sidebar - Mobile - YouTube Style */}
+            <div className="flex-1 bg-background overflow-hidden">
               <EnhancedSidebarWithEnrollment
                 onContentSelect={handleContentSelect}
                 selectedContentId={selectedContent?.id}
