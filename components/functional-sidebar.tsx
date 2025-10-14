@@ -138,6 +138,76 @@ export function FunctionalSidebar({ onContentSelect, selectedContentId }: Functi
     }
   }, [selectedSemester])
 
+  // Auto-expand sidebar sections when content is selected from shareable URL
+  useEffect(() => {
+    if (!selectedContentId || !courses.length) return
+
+    console.log("🔍 Auto-expanding sidebar for selected content:", selectedContentId)
+
+    // Find the course and topic that contains the selected content
+    let foundCourse = null
+    let foundTopic = null
+    let contentType = null
+
+    for (const course of courses) {
+      const courseDataForCourse = courseData[course.id]
+      if (!courseDataForCourse) continue
+
+      // Check study tools
+      const studyTool = courseDataForCourse.studyTools?.find(tool => tool.id === selectedContentId)
+      if (studyTool) {
+        foundCourse = course
+        contentType = 'study-tool'
+        break
+      }
+
+      // Check topics for videos and slides
+      for (const topic of courseDataForCourse.topics || []) {
+        const topicVideos = courseDataForCourse.videos[topic.id] || []
+        const topicSlides = courseDataForCourse.slides[topic.id] || []
+
+        const video = topicVideos.find(v => v.id === selectedContentId)
+        const slide = topicSlides.find(s => s.id === selectedContentId)
+
+        if (video || slide) {
+          foundCourse = course
+          foundTopic = topic
+          contentType = video ? 'video' : 'slide'
+          break
+        }
+      }
+
+      if (foundCourse) break
+    }
+
+    if (foundCourse) {
+      console.log("✅ Found content in course:", foundCourse.title, "topic:", foundTopic?.title, "type:", contentType)
+
+      // Auto-expand the course
+      setExpandedCourses(prev => new Set([...prev, foundCourse.id]))
+
+      if (contentType === 'study-tool') {
+        // Expand study tools section
+        setExpandedStudyTools(prev => new Set([...prev, foundCourse.id]))
+      } else if (foundTopic) {
+        // Expand topics section and the specific topic
+        setExpandedTopics(prev => new Set([...prev, foundCourse.id]))
+        setExpandedTopicItems(prev => new Set([...prev, foundTopic.id]))
+      }
+
+      // Scroll to the selected item after a short delay to ensure DOM is updated
+      setTimeout(() => {
+        const selectedElement = document.querySelector(`[data-content-id="${selectedContentId}"]`)
+        if (selectedElement) {
+          selectedElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          console.log("📍 Scrolled to selected content item")
+        }
+      }, 500)
+    } else {
+      console.log("❌ Could not find content in sidebar:", selectedContentId)
+    }
+  }, [selectedContentId, courses, courseData])
+
 
 
   const fetchSemesters = async () => {
@@ -768,6 +838,7 @@ const CourseItem = React.memo(
                         <Button
                           key={tool.id}
                           variant="ghost"
+                          data-content-id={tool.id}
                           className={`w-full justify-start text-left ${isMobile ? 'p-2 mobile-content-item touch-optimized-button' : 'p-2'} h-auto rounded-md transition-colors ${
                             isSelected
                               ? "bg-primary/10 text-primary"
@@ -857,6 +928,7 @@ const CourseItem = React.memo(
                                   <Button
                                     key={video.id}
                                     variant="ghost"
+                                    data-content-id={video.id}
                                     className={`w-full justify-start text-left ${isMobile ? 'p-2 mobile-content-item touch-optimized-button' : 'p-2'} h-auto rounded-md transition-colors touch-manipulation ${
                                       isSelected
                                         ? "bg-primary/10 text-primary"
@@ -892,6 +964,7 @@ const CourseItem = React.memo(
                                   <Button
                                     key={slide.id}
                                     variant="ghost"
+                                    data-content-id={slide.id}
                                     className={`w-full justify-start text-left ${isMobile ? 'p-2 mobile-content-item touch-optimized-button' : 'p-2'} h-auto rounded-md transition-colors touch-manipulation ${
                                       isSelected
                                         ? "bg-primary/10 text-primary"

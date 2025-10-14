@@ -41,11 +41,13 @@ interface ContentItem {
 }
 
 function HomePageContent() {
+  // Force recompilation - sidebar auto-expand fix
   console.log("🏠 HomePageContent component rendering...")
   const [selectedContent, setSelectedContent] = useState<ContentItem | null>(null)
   const [mounted, setMounted] = useState(false)
   console.log("📋 Current selectedContent state:", selectedContent)
   console.log("🔧 Current mounted state:", mounted)
+  console.log("🔗 Current URL:", typeof window !== 'undefined' ? window.location.href : 'SSR')
   const [useMultiCourse, setUseMultiCourse] = useState(false) // Toggle for multi-course mode - disabled for shareable URLs
   const { toast } = useToast()
   const isMobile = useIsMobile()
@@ -73,39 +75,95 @@ function HomePageContent() {
   // Use optimized loading or fallback
   const isLoading = optimizedLoading || fallbackLoading
 
-  // Ensure component is mounted before accessing theme
+  // Ensure component is mounted and check for shareable URLs
   useEffect(() => {
+    console.log("🔧 Setting mounted to true")
     setMounted(true)
 
-    // TEST: Force set content to see if content viewer renders
-    const urlParams = new URLSearchParams(window.location.search)
-    const sharePath = urlParams.get('share_path')
-    console.log("🧪 Current URL:", window.location.href)
-    console.log("🧪 Share path:", sharePath)
-    console.log("🧪 Share path includes video ID:", sharePath?.includes('c66f0a08-393e-4e8f-b51e-cca8fafd5c57'))
-    if (sharePath?.includes('c66f0a08-393e-4e8f-b51e-cca8fafd5c57')) {
-      console.log("🧪 TEST: Force setting content for debugging")
-      setSelectedContent({
-        id: 'c66f0a08-393e-4e8f-b51e-cca8fafd5c57',
-        title: 'Test Video',
-        type: 'video',
-        content_url: 'https://example.com/test.mp4',
-        courseTitle: 'Test Course',
-        topicTitle: 'Test Topic'
-      })
+    // Check for shareable URLs immediately when component mounts
+    const checkShareableUrl = async () => {
+      console.log("🔄 Checking for shareable URL on mount...")
+
+      // Check for share_path parameter (from middleware rewrite)
+      const urlParams = new URLSearchParams(window.location.search)
+      const sharePath = urlParams.get('share_path')
+
+      console.log("🔗 Share path from params:", sharePath)
+      console.log("🔗 Current URL:", window.location.href)
+
+      if (sharePath) {
+        console.log("✅ Found shareable URL, loading content...")
+
+        // Extract content type and ID from share path
+        const pathMatch = sharePath.match(/\/(video|slide|study-tool)\/([a-f0-9-]+)/)
+        if (pathMatch) {
+          const [, contentType, contentId] = pathMatch
+          console.log("📝 Content type:", contentType, "ID:", contentId)
+
+          try {
+            let response
+            let apiUrl
+
+            // Call appropriate API based on content type
+            switch (contentType) {
+              case 'video':
+                apiUrl = `/api/videos/${contentId}`
+                break
+              case 'slide':
+                apiUrl = `/api/slides/${contentId}`
+                break
+              case 'study-tool':
+                apiUrl = `/api/study-tools/${contentId}`
+                break
+              default:
+                console.error("❌ Unknown content type:", contentType)
+                return
+            }
+
+            console.log("🌐 Fetching from:", apiUrl)
+            response = await fetch(`${apiUrl}?v=${Date.now()}`)
+
+            if (response.ok) {
+              const data = await response.json()
+              console.log("✅ Content loaded successfully:", data)
+
+              // Set the selected content
+              setSelectedContent({
+                id: data.id,
+                title: data.title,
+                type: contentType,
+                content_url: data.content_url || data.url,
+                courseTitle: data.course?.title || 'Unknown Course',
+                topicTitle: data.topic?.title || 'Unknown Topic'
+              })
+
+              console.log("🎯 Content set in state")
+            } else {
+              console.error("❌ Failed to fetch content:", response.status)
+            }
+          } catch (error) {
+            console.error("❌ Error loading content:", error)
+          }
+        } else {
+          console.error("❌ Invalid share path format:", sharePath)
+        }
+      } else {
+        console.log("ℹ️ No shareable URL detected")
+      }
     }
+
+    // Run the check after a small delay to ensure everything is ready
+    setTimeout(checkShareableUrl, 100)
   }, [])
 
   // Load content if URL contains shareable route
   useEffect(() => {
-    console.log("🔄 CONTENT LOADING useEffect triggered - mounted:", mounted, "userId:", userId)
+    console.log("🔄 CONTENT LOADING useEffect triggered - userId:", userId)
     console.log("🔄 searchParams:", searchParams.toString())
     console.log("🔄 share_path:", searchParams.get('share_path'))
+    console.log("🔄 window.location.href:", typeof window !== 'undefined' ? window.location.href : 'SSR')
+
     const loadContentFromUrl = async () => {
-      if (!mounted) {
-        console.log("❌ Not mounted yet, skipping content load")
-        return
-      }
 
       // Check for share_path parameter (from middleware rewrite) OR direct URL patterns
       const urlParams = new URLSearchParams(window.location.search)
@@ -313,7 +371,7 @@ function HomePageContent() {
     // Add a small delay to ensure everything is mounted
     const timer = setTimeout(loadContentFromUrl, 100)
     return () => clearTimeout(timer)
-  }, [mounted])
+  }, [userId, searchParams, typeof window !== 'undefined' ? window.location.search : ''])
 
   // Initialize with highlighted course syllabus if available (only if no shareable URL)
   useEffect(() => {
