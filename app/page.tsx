@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Download, Maximize } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -41,14 +41,18 @@ interface ContentItem {
 }
 
 function HomePageContent() {
+  console.log("🏠 HomePageContent component rendering...")
   const [selectedContent, setSelectedContent] = useState<ContentItem | null>(null)
   const [mounted, setMounted] = useState(false)
-  const [useMultiCourse, setUseMultiCourse] = useState(true) // Toggle for multi-course mode
+  console.log("📋 Current selectedContent state:", selectedContent)
+  console.log("🔧 Current mounted state:", mounted)
+  const [useMultiCourse, setUseMultiCourse] = useState(false) // Toggle for multi-course mode - disabled for shareable URLs
   const { toast } = useToast()
   const isMobile = useIsMobile()
   const { isAuthenticated, isLoading: sectionLoading, selectedSection, userId } = useSectionContext()
 
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   // Fallback loading state for compatibility
   const [fallbackLoading, setFallbackLoading] = useState(false)
@@ -72,12 +76,36 @@ function HomePageContent() {
   // Ensure component is mounted before accessing theme
   useEffect(() => {
     setMounted(true)
+
+    // TEST: Force set content to see if content viewer renders
+    const urlParams = new URLSearchParams(window.location.search)
+    const sharePath = urlParams.get('share_path')
+    console.log("🧪 Current URL:", window.location.href)
+    console.log("🧪 Share path:", sharePath)
+    console.log("🧪 Share path includes video ID:", sharePath?.includes('c66f0a08-393e-4e8f-b51e-cca8fafd5c57'))
+    if (sharePath?.includes('c66f0a08-393e-4e8f-b51e-cca8fafd5c57')) {
+      console.log("🧪 TEST: Force setting content for debugging")
+      setSelectedContent({
+        id: 'c66f0a08-393e-4e8f-b51e-cca8fafd5c57',
+        title: 'Test Video',
+        type: 'video',
+        content_url: 'https://example.com/test.mp4',
+        courseTitle: 'Test Course',
+        topicTitle: 'Test Topic'
+      })
+    }
   }, [])
 
   // Load content if URL contains shareable route
   useEffect(() => {
+    console.log("🔄 CONTENT LOADING useEffect triggered - mounted:", mounted, "userId:", userId)
+    console.log("🔄 searchParams:", searchParams.toString())
+    console.log("🔄 share_path:", searchParams.get('share_path'))
     const loadContentFromUrl = async () => {
-      if (!mounted) return
+      if (!mounted) {
+        console.log("❌ Not mounted yet, skipping content load")
+        return
+      }
 
       // Check for share_path parameter (from middleware rewrite) OR direct URL patterns
       const urlParams = new URLSearchParams(window.location.search)
@@ -87,6 +115,9 @@ function HomePageContent() {
       console.log("🔗 Checking for shareable URL...")
       console.log("Share path from params:", sharePath)
       console.log("Current pathname:", currentPath)
+      console.log("Full URL:", window.location.href)
+      console.log("Is authenticated:", isAuthenticated)
+      console.log("User ID:", userId)
 
       // Check if this is a direct shareable URL pattern
       let detectedSharePath = sharePath
@@ -195,9 +226,10 @@ function HomePageContent() {
             console.log("✅ Setting content:", content.title)
             setSelectedContent(content)
             console.log("✅ Content set successfully!")
+            console.log("✅ Selected content state:", content)
 
-            // Auto-enroll user in the course if they have course info and are authenticated
-            if (content.courseTitle && isAuthenticated && (contentData.topic?.course?.id || contentData.course?.id)) {
+            // Auto-enroll user in the course if they have course info and user ID is available
+            if (content.courseTitle && userId && (contentData.topic?.course?.id || contentData.course?.id)) {
               const courseId = contentData.topic?.course?.id || contentData.course?.id
               console.log("🎓 Auto-enrolling user in course:", courseId)
 
@@ -281,7 +313,7 @@ function HomePageContent() {
     // Add a small delay to ensure everything is mounted
     const timer = setTimeout(loadContentFromUrl, 100)
     return () => clearTimeout(timer)
-  }, [mounted, toast, loadContent, setFallbackLoading, userId, isAuthenticated])
+  }, [mounted])
 
   // Initialize with highlighted course syllabus if available (only if no shareable URL)
   useEffect(() => {
@@ -548,6 +580,7 @@ function HomePageContent() {
                 />
               ) : selectedContent ? (
                 <>
+                  {console.log("📱 Rendering mobile content viewer for:", selectedContent.title)}
                   {/* Content Viewer - Enhanced Mobile Design */}
                   <div className="relative w-full h-full">
                     <div className="absolute inset-0 overflow-hidden bg-black rounded-b-lg">
@@ -628,6 +661,7 @@ function HomePageContent() {
                 />
               ) : selectedContent ? (
                 <>
+                  {console.log("🖥️ Rendering desktop content viewer for:", selectedContent.title)}
                   {/* Content Viewer - Desktop */}
                   <div className="flex-1 p-0.5 sm:p-1 md:p-3 lg:p-4 xl:p-6 overflow-hidden">
                     <div className="h-full rounded-md sm:rounded-lg md:rounded-xl overflow-hidden shadow-md sm:shadow-lg md:shadow-modern-lg border border-border animate-fade-in">

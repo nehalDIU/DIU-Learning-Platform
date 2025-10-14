@@ -109,7 +109,7 @@ export function FunctionalSidebar({ onContentSelect, selectedContentId }: Functi
   const [error, setError] = useState(null)
 
   // Get section context for filtering
-  const { selectedSection, isAuthenticated } = useSectionContext()
+  const { selectedSection, isAuthenticated, selectedBatch: contextBatch, batchSemesters, isBatchLoading } = useSectionContext()
 
   // Expansion states
   const [expandedCourses, setExpandedCourses] = useState(new Set())
@@ -126,10 +126,10 @@ export function FunctionalSidebar({ onContentSelect, selectedContentId }: Functi
   const [isScrolling, setIsScrolling] = useState(false)
   const [compactMode, setCompactMode] = useState(false)
 
-  // Fetch semesters on component mount and when section changes
+  // Fetch and filter semesters based on context
   useEffect(() => {
     fetchSemesters()
-  }, [isAuthenticated, selectedSection])
+  }, [isAuthenticated, selectedSection, contextBatch])
 
   // Fetch courses when semester changes
   useEffect(() => {
@@ -137,6 +137,8 @@ export function FunctionalSidebar({ onContentSelect, selectedContentId }: Functi
       fetchCourses(selectedSemester)
     }
   }, [selectedSemester])
+
+
 
   const fetchSemesters = async () => {
     try {
@@ -149,10 +151,23 @@ export function FunctionalSidebar({ onContentSelect, selectedContentId }: Functi
         return data || []
       })
 
-      // Filter semesters based on selected section if user is authenticated
+      // Filter semesters based on batch selection and user authentication
       let filteredData = data
+
+      // First, filter by batch if a batch is selected
+      if (contextBatch) {
+        filteredData = data.filter(semester => {
+          if (!semester.section) return false
+
+          // Extract batch number from section format (e.g., "63_G" -> "63")
+          const [semesterBatch] = semester.section.split('_')
+          return semesterBatch === contextBatch
+        })
+      }
+
+      // Then, apply additional section filtering if user is authenticated and has a specific section
       if (isAuthenticated && selectedSection) {
-        filteredData = data.filter(semester =>
+        filteredData = filteredData.filter(semester =>
           semester.section === selectedSection.section ||
           semester.id === selectedSection.id
         )
@@ -188,6 +203,8 @@ export function FunctionalSidebar({ onContentSelect, selectedContentId }: Functi
       setIsLoading(false)
     }
   }
+
+
 
   const fetchCourses = async (semesterId: string) => {
     try {

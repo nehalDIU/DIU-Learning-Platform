@@ -3,7 +3,7 @@
  */
 
 export function generateSimpleShareUrl(contentType: string, contentId: string): string {
-  const base = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'
+  const base = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001')
   
   switch (contentType) {
     case 'video':

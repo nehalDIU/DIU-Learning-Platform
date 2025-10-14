@@ -35,6 +35,7 @@ interface SectionSelectionDropdownProps {
   placeholder?: string
   className?: string
   disabled?: boolean
+  filterByBatch?: string // Optional batch filter
 }
 
 export function SectionSelectionDropdown({
@@ -42,7 +43,8 @@ export function SectionSelectionDropdown({
   onValueChange,
   placeholder = "Select your section...",
   className,
-  disabled = false
+  disabled = false,
+  filterByBatch
 }: SectionSelectionDropdownProps) {
   const [open, setOpen] = useState(false)
   const [semesters, setSemesters] = useState<Semester[]>([])
@@ -75,22 +77,31 @@ export function SectionSelectionDropdown({
     fetchSemesters()
   }, [])
 
-  // Filter and sort semesters based on search query
+  // Filter and sort semesters based on search query and batch
   const filteredSemesters = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return semesters.filter(semester => semester.is_active)
+    let filtered = semesters.filter(semester => semester.is_active)
+
+    // Apply batch filter if specified
+    if (filterByBatch) {
+      filtered = filtered.filter(semester => {
+        if (!semester.section) return false
+        const [semesterBatch] = semester.section.split('_')
+        return semesterBatch === filterByBatch
+      })
     }
 
-    const query = searchQuery.toLowerCase()
-    return semesters
-      .filter(semester => 
-        semester.is_active && (
-          semester.section.toLowerCase().includes(query) ||
-          semester.title.toLowerCase().includes(query) ||
-          (semester.description && semester.description.toLowerCase().includes(query))
-        )
+    // Apply search query filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase()
+      filtered = filtered.filter(semester =>
+        semester.section.toLowerCase().includes(query) ||
+        semester.title.toLowerCase().includes(query) ||
+        (semester.description && semester.description.toLowerCase().includes(query))
       )
-  }, [semesters, searchQuery])
+    }
+
+    return filtered
+  }, [semesters, searchQuery, filterByBatch])
 
   // Group sections by batch number for better organization
   const groupedSections = useMemo(() => {

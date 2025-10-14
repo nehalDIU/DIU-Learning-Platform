@@ -39,11 +39,17 @@ interface SectionContextType {
   isLoading: boolean
   error: string | null
 
+  // Batch selection state
+  selectedBatch: string | null
+  batchSemesters: Semester[]
+  isBatchLoading: boolean
+
   // Actions
   createUserWithEmail: (userData: CreateUserData) => Promise<void>
   skipSectionSelection: () => Promise<void>
   clearSelection: () => void
   updateUserProfile: (updates: Partial<StudentUser>) => Promise<void>
+  setSelectedBatch: (batch: string | null) => void
 
   // Computed values
   isAuthenticated: boolean
@@ -58,7 +64,8 @@ interface SectionProviderProps {
 
 const STORAGE_KEYS = {
   SELECTED_SECTION: 'diu_selected_section',
-  STUDENT_USER: 'diu_student_user'
+  STUDENT_USER: 'diu_student_user',
+  SELECTED_BATCH: 'diu_selected_batch'
 }
 
 export function SectionProvider({ children }: SectionProviderProps) {
@@ -67,12 +74,18 @@ export function SectionProvider({ children }: SectionProviderProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Load saved section and user data on mount
+  // Batch selection state
+  const [selectedBatch, setSelectedBatchState] = useState<string | null>(null)
+  const [batchSemesters, setBatchSemesters] = useState<Semester[]>([])
+  const [isBatchLoading, setIsBatchLoading] = useState(false)
+
+  // Load saved section, user, and batch data on mount
   useEffect(() => {
     const loadSavedData = () => {
       try {
         const savedSection = localStorage.getItem(STORAGE_KEYS.SELECTED_SECTION)
         const savedUser = localStorage.getItem(STORAGE_KEYS.STUDENT_USER)
+        const savedBatch = localStorage.getItem(STORAGE_KEYS.SELECTED_BATCH)
 
         if (savedSection) {
           const section = JSON.parse(savedSection)
@@ -83,11 +96,16 @@ export function SectionProvider({ children }: SectionProviderProps) {
           const user = JSON.parse(savedUser)
           setStudentUser(user)
         }
+
+        if (savedBatch) {
+          setSelectedBatchState(savedBatch)
+        }
       } catch (err) {
         console.error('Error loading saved section data:', err)
         // Clear corrupted data
         localStorage.removeItem(STORAGE_KEYS.SELECTED_SECTION)
         localStorage.removeItem(STORAGE_KEYS.STUDENT_USER)
+        localStorage.removeItem(STORAGE_KEYS.SELECTED_BATCH)
       } finally {
         setIsLoading(false)
       }
@@ -95,6 +113,23 @@ export function SectionProvider({ children }: SectionProviderProps) {
 
     loadSavedData()
   }, [])
+
+  // Load batch semesters when selectedBatch changes
+  useEffect(() => {
+    if (selectedBatch) {
+      fetchBatchSemesters(selectedBatch)
+    }
+  }, [selectedBatch])
+
+  // Handle existing users who have a batch in their profile but not in context
+  useEffect(() => {
+    if (studentUser && studentUser.batch && !selectedBatch) {
+      console.log(`🔄 Setting batch from existing user profile: ${studentUser.batch}`)
+      setSelectedBatchState(studentUser.batch)
+      localStorage.setItem(STORAGE_KEYS.SELECTED_BATCH, studentUser.batch)
+      fetchBatchSemesters(studentUser.batch)
+    }
+  }, [studentUser, selectedBatch])
 
   // Create user with email and batch/section information
   const createUserWithEmail = async (userData: CreateUserData): Promise<void> => {
@@ -142,6 +177,15 @@ export function SectionProvider({ children }: SectionProviderProps) {
 
       // Update state
       setStudentUser(user)
+
+      // Set the selected batch in context
+      if (userData.batch) {
+        setSelectedBatchState(userData.batch)
+        localStorage.setItem(STORAGE_KEYS.SELECTED_BATCH, userData.batch)
+        // Fetch semesters for the selected batch
+        fetchBatchSemesters(userData.batch)
+      }
+
       if (selectedSemester) {
         setSelectedSection(selectedSemester)
         localStorage.setItem(STORAGE_KEYS.SELECTED_SECTION, JSON.stringify(selectedSemester))
@@ -246,15 +290,51 @@ export function SectionProvider({ children }: SectionProviderProps) {
     }
   }
 
+  // Fetch semesters for selected batch
+  const fetchBatchSemesters = async (batch: string) => {
+    try {
+      setIsBatchLoading(true)
+      const response = await fetch(`/api/semesters/by-batch/${batch}`)
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch semesters for batch')
+      }
+
+      const data = await response.json()
+      setBatchSemesters(data.semesters)
+    } catch (err) {
+      console.error('Error fetching batch semesters:', err)
+      setBatchSemesters([])
+    } finally {
+      setIsBatchLoading(false)
+    }
+  }
+
+  // Set selected batch and fetch its semesters
+  const setSelectedBatch = (batch: string | null) => {
+    setSelectedBatchState(batch)
+
+    if (batch) {
+      localStorage.setItem(STORAGE_KEYS.SELECTED_BATCH, batch)
+      fetchBatchSemesters(batch)
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.SELECTED_BATCH)
+      setBatchSemesters([])
+    }
+  }
+
   // Clear selection and logout
   const clearSelection = () => {
     setSelectedSection(null)
     setStudentUser(null)
+    setSelectedBatchState(null)
+    setBatchSemesters([])
     setError(null)
 
     // Clear localStorage
     localStorage.removeItem(STORAGE_KEYS.SELECTED_SECTION)
     localStorage.removeItem(STORAGE_KEYS.STUDENT_USER)
+    localStorage.removeItem(STORAGE_KEYS.SELECTED_BATCH)
   }
 
 
@@ -271,11 +351,17 @@ export function SectionProvider({ children }: SectionProviderProps) {
     isLoading,
     error,
 
+    // Batch selection state
+    selectedBatch,
+    batchSemesters,
+    isBatchLoading,
+
     // Actions
     createUserWithEmail,
     skipSectionSelection,
     clearSelection,
     updateUserProfile,
+    setSelectedBatch,
 
     // Computed values
     isAuthenticated,

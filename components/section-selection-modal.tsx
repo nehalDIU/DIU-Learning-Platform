@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { GraduationCap, Users, ArrowRight, AlertCircle, CheckCircle, Mail, X } from "lucide-react"
+import { GraduationCap, Users, ArrowRight, AlertCircle, CheckCircle, Mail, X, BookOpen } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -35,6 +35,10 @@ export function SectionSelectionModal({ onComplete }: SectionSelectionModalProps
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({})
   const [showSetupGuide, setShowSetupGuide] = useState(false)
 
+  // Semester preview state
+  const [batchSemesters, setBatchSemesters] = useState<any[]>([])
+  const [loadingSemesters, setLoadingSemesters] = useState(false)
+
   // Fetch available batches
   useEffect(() => {
     const fetchBatches = async () => {
@@ -50,6 +54,32 @@ export function SectionSelectionModal({ onComplete }: SectionSelectionModalProps
     }
     fetchBatches()
   }, [])
+
+  // Fetch semesters when batch is selected
+  useEffect(() => {
+    const fetchBatchSemesters = async () => {
+      if (!selectedBatch) {
+        setBatchSemesters([])
+        return
+      }
+
+      try {
+        setLoadingSemesters(true)
+        const response = await fetch(`/api/semesters/by-batch/${selectedBatch}`)
+        if (response.ok) {
+          const data = await response.json()
+          setBatchSemesters(data.semesters || [])
+        }
+      } catch (err) {
+        console.error('Error fetching batch semesters:', err)
+        setBatchSemesters([])
+      } finally {
+        setLoadingSemesters(false)
+      }
+    }
+
+    fetchBatchSemesters()
+  }, [selectedBatch])
 
   const validateForm = () => {
     const errors: { [key: string]: string } = {}
@@ -223,6 +253,49 @@ export function SectionSelectionModal({ onComplete }: SectionSelectionModalProps
               )}
             </div>
 
+            {/* Semester Preview */}
+            {selectedBatch && (
+              <div className="space-y-2 mt-4">
+                <Label className="flex items-center gap-2 text-sm font-medium">
+                  <BookOpen className="h-4 w-4" />
+                  Available Semesters in Batch {selectedBatch}
+                </Label>
+
+                {loadingSemesters ? (
+                  <div className="flex items-center justify-center p-4 bg-muted/50 rounded-lg">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2"></div>
+                    <span className="text-sm text-muted-foreground">Loading semesters...</span>
+                  </div>
+                ) : batchSemesters.length > 0 ? (
+                  <div className="bg-muted/50 rounded-lg p-3 max-h-32 overflow-y-auto">
+                    <div className="space-y-2">
+                      {batchSemesters.map((semester) => (
+                        <div key={semester.id} className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-primary rounded-full"></div>
+                            <span className="font-medium">{semester.title}</span>
+                            <Badge variant="outline" className="text-xs">
+                              {semester.section}
+                            </Badge>
+                          </div>
+                          {semester.is_active && (
+                            <Badge variant="secondary" className="text-xs">
+                              Active
+                            </Badge>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-muted/50 rounded-lg p-3 text-center">
+                    <p className="text-sm text-muted-foreground">
+                      No semesters found for this batch
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
 
           </div>
 
